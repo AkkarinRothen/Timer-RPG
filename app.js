@@ -210,91 +210,6 @@ class EssayTimer {
         }
     }
 
-    // Missions
-    loadMissions() {
-        let missions = db.get('missions') || {};
-        if (Object.keys(missions).length === 0) {
-            missions = defaultMissions;
-            db.set('missions', missions);
-        }
-        if (this.missionSelect) {
-            this.missionSelect.innerHTML = '<option value="">Seleccionar Misi\u00f3n</option>';
-            for (const key in missions) {
-                const option = document.createElement('option');
-                option.value = key;
-                option.textContent = missions[key].name;
-                this.missionSelect.appendChild(option);
-            }
-        }
-    }
-
-    loadMission(key) {
-        if (!key) {
-            this.currentMissionKey = null;
-            this.currentMission = null;
-            this.currentRoomIndex = 0;
-            if (this.missionDescEl) this.missionDescEl.textContent = '';
-            return;
-        }
-        const missions = db.get('missions');
-        if (!missions || !missions[key]) return;
-        this.currentMissionKey = key;
-        this.currentMission = missions[key];
-        this.currentRoomIndex = 0;
-        if (this.missionDescEl) this.missionDescEl.textContent = this.currentMission.description || '';
-        this.advanceRoom();
-    }
-
-    createNewMission() {
-        const name = prompt('Nombre de la misi\u00f3n:', 'Nueva Misi\u00f3n');
-        if (!name) return;
-        const roomsCount = parseInt(prompt('N\u00famero de salas:', '3'), 10) || 3;
-        const difficulty = prompt('Dificultad (F\u00e1cil/Normal/Dif\u00edcil):', 'F\u00e1cil');
-        const rooms = [];
-        for (let i = 0; i < roomsCount - 1; i++) {
-            const r = Math.random();
-            if (r < 0.5) {
-                rooms.push({ type: 'monster', monsterIndex: Math.floor(Math.random() * defaultMonsters.length) });
-            } else if (r < 0.8) {
-                rooms.push({ type: 'item', item: 'Tesoro' });
-            } else {
-                rooms.push({ type: 'empty' });
-            }
-        }
-        const bossIndex = Math.floor(Math.random() * defaultMonsters.length);
-        rooms.push({ type: 'monster', monsterIndex: bossIndex });
-        const missionKey = name.toLowerCase().replace(/\s+/g, '-');
-        const mission = { name, difficulty, description: `Derrota al ${defaultMonsters[bossIndex].name} para completar la misi\u00f3n.`, rooms };
-        let missions = db.get('missions') || {};
-        missions[missionKey] = mission;
-        db.set('missions', missions);
-        this.loadMissions();
-        if (this.missionSelect) this.missionSelect.value = missionKey;
-        this.loadMission(missionKey);
-    }
-
-    advanceRoom() {
-        if (!this.currentMission) return;
-        if (this.currentRoomIndex >= this.currentMission.rooms.length) {
-            alert(`\u00a1Has completado la misi\u00f3n ${this.currentMission.name}!`);
-            this.loadMission('');
-            return;
-        }
-        const room = this.currentMission.rooms[this.currentRoomIndex];
-        if (room.type === 'monster') {
-            this.loadMonster(room.monsterIndex);
-            this.updateMonsterHUD();
-        } else if (room.type === 'item') {
-            alert(`Encontraste: ${room.item}`);
-            this.currentRoomIndex++;
-            this.advanceRoom();
-        } else {
-            alert('La sala est\u00e1 vac\u00eda.');
-            this.currentRoomIndex++;
-            this.advanceRoom();
-        }
-    }
-
     loadMonster(index) {
         if (index >= defaultMonsters.length) {
             this.currentMonster = null;
@@ -311,6 +226,7 @@ class EssayTimer {
         const base = defaultMonsters[index];
         this.currentMonster = { name: base.name, hp: base.maxHP, maxHP: base.maxHP, img: base.img };
         this.saveCurrentMonster();
+        this.updateMonsterHUD();
     }
 
     loadNextMonster() {
@@ -350,6 +266,98 @@ class EssayTimer {
         }
         if (this.monsterImgEl && this.currentMonster.img) {
             this.monsterImgEl.src = this.currentMonster.img;
+        }
+    }
+
+    // Missions
+    loadMissions() {
+        let missions = db.get('missions') || {};
+        if (Object.keys(missions).length === 0) {
+            missions = defaultMissions;
+            db.set('missions', missions);
+        }
+        if (this.missionSelect) {
+            this.missionSelect.innerHTML = '<option value="">Seleccionar Misión</option>';
+            for (const key in missions) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = missions[key].name;
+                this.missionSelect.appendChild(option);
+            }
+        }
+    }
+
+    loadMission(key) {
+        if (!key) {
+            this.currentMissionKey = null;
+            this.currentMission = null;
+            this.currentRoomIndex = 0;
+            if (this.missionDescEl) this.missionDescEl.textContent = '';
+            if (this.missionSelect) this.missionSelect.value = '';
+            return;
+        }
+        const missions = db.get('missions');
+        if (!missions || !missions[key]) return;
+        this.currentMissionKey = key;
+        this.currentMission = missions[key];
+        this.currentRoomIndex = 0;
+        if (this.missionDescEl) this.missionDescEl.textContent = this.currentMission.description || '';
+        if (this.missionSelect) this.missionSelect.value = key;
+        this.advanceRoom();
+    }
+
+    createNewMission() {
+        const name = prompt('Nombre de la misión:', 'Nueva Misión');
+        if (!name) return;
+        const roomsCount = parseInt(prompt('Número de salas:', '3'), 10) || 3;
+        const difficulty = prompt('Dificultad (Fácil/Normal/Difícil):', 'Fácil');
+        const rooms = [];
+        for (let i = 0; i < roomsCount - 1; i++) {
+            const r = Math.random();
+            if (r < 0.5) {
+                rooms.push({ type: 'monster', monsterIndex: Math.floor(Math.random() * defaultMonsters.length) });
+            } else if (r < 0.8) {
+                rooms.push({ type: 'item', item: 'Tesoro' });
+            } else {
+                rooms.push({ type: 'empty' });
+            }
+        }
+        const bossIndex = Math.floor(Math.random() * defaultMonsters.length);
+        rooms.push({ type: 'monster', monsterIndex: bossIndex });
+        const missionKey = name.toLowerCase().replace(/\s+/g, '-');
+        const mission = {
+            name,
+            difficulty,
+            description: `Derrota al ${defaultMonsters[bossIndex].name} para completar la misión.`,
+            rooms
+        };
+        let missions = db.get('missions') || {};
+        missions[missionKey] = mission;
+        db.set('missions', missions);
+        this.loadMissions();
+        if (this.missionSelect) this.missionSelect.value = missionKey;
+        this.loadMission(missionKey);
+    }
+
+    advanceRoom() {
+        if (!this.currentMission) return;
+        if (this.currentRoomIndex >= this.currentMission.rooms.length) {
+            alert(`¡Has completado la misión ${this.currentMission.name}!`);
+            this.loadMission('');
+            return;
+        }
+        const room = this.currentMission.rooms[this.currentRoomIndex];
+        if (room.type === 'monster') {
+            this.loadMonster(room.monsterIndex);
+            this.updateMonsterHUD();
+        } else if (room.type === 'item') {
+            alert(`Encontraste: ${room.item}`);
+            this.currentRoomIndex++;
+            this.advanceRoom();
+        } else {
+            alert('La sala está vacía.');
+            this.currentRoomIndex++;
+            this.advanceRoom();
         }
     }
 
@@ -427,7 +435,11 @@ class EssayTimer {
     toggleEditMode(forceOff = false) {
         this.isEditMode = forceOff ? false : !this.isEditMode;
         document.body.classList.toggle('edit-mode-active', this.isEditMode);
-        const mainControls = [this.startBtn, this.pauseBtn, this.resetBtn, this.newEssayBtn, this.essayNameInput, this.savedEssaysSelect, this.deleteEssayBtn, this.templateSelect];
+        const mainControls = [
+            this.startBtn, this.pauseBtn, this.resetBtn,
+            this.newEssayBtn, this.essayNameInput,
+            this.savedEssaysSelect, this.deleteEssayBtn, this.templateSelect
+        ];
         mainControls.forEach(c => { if (c) c.disabled = this.isEditMode; });
         if (this.isEditMode) this.stagesBackup = JSON.parse(JSON.stringify(this.stages));
     }
@@ -588,64 +600,121 @@ class EssayTimer {
         if (this.backgroundInput) this.backgroundInput.value = '';
     }
 
-    setupVisibilityHandler() {
-        const overlay = document.getElementById('floating-stage');
-        if (!overlay) return;
-
-        const asistenteContainer = document.getElementById('asistente-container');
-        const assistantToggleBtn = document.getElementById('assistant-toggle-btn');
-        let interval;
-        let assistantWasHidden = false;
-
-        const updateOverlay = () => {
-            const stage = this.stages[this.currentStageIndex];
-            if (!stage) return;
-            const time = stage.isExtra ? this.extraTime : this.timeLeftInStage;
-            overlay.textContent = `${stage.label}: ${this.formatTime(time)}`;
-        };
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                updateOverlay();
-                overlay.style.display = 'block';
-                clearInterval(interval);
-                interval = setInterval(updateOverlay, 1000);
-
-                if (asistenteContainer && asistenteContainer.style.display === 'none') {
-                    assistantWasHidden = true;
-                    asistenteContainer.style.display = 'flex';
-                    if (assistantToggleBtn) assistantToggleBtn.style.display = 'none';
-                } else {
-                    assistantWasHidden = false;
-                }
-
-                const stage = this.stages[this.currentStageIndex];
-                if (window.asistenteDecir && stage) {
-                    window.asistenteDecir(`Etapa actual: ${stage.label}`);
-                }
-            } else {
-                overlay.style.display = 'none';
-                clearInterval(interval);
-                if (assistantWasHidden && asistenteContainer) {
-                    asistenteContainer.style.display = 'none';
-                    if (assistantToggleBtn) assistantToggleBtn.style.display = 'block';
-                }
-                assistantWasHidden = false;
-            }
-        });
+    updatePageTitle() {
+        if (!this.isRunning) {
+            document.title = 'Advanced Essay Timer';
+            return;
+        }
+        const stage = this.stages[this.currentStageIndex];
+        if (!stage) return;
+        document.title = `${this.formatTime(this.timeLeftInStage)} - ${stage.label}`;
     }
 
-    playNotification() {
-        if (this.notificationSound) {
-            this.notificationSound.currentTime = 0;
-            this.notificationSound.play().catch(() => {});
+    calculateAndDisplayTotalTime() {
+        const activeStages = this.stages.filter(stage => !stage.isExtra);
+        let totalSeconds = activeStages.reduce((acc, stage) => acc + (stage.duration * 60), 0);
+        if (this.totalTimeEl) this.totalTimeEl.textContent = `Tiempo Total: ${this.formatTime(totalSeconds)}`;
+    }
+
+    highlightCurrentStage() {
+        if (this.previousStageId && this.stageElements[this.previousStageId]?.container) {
+            this.stageElements[this.previousStageId].container.classList.remove('active-stage');
+        }
+        const current = this.stages[this.currentStageIndex];
+        if (current && this.stageElements[current.id]?.container) {
+            this.stageElements[current.id].container.classList.add('active-stage');
+            this.previousStageId = current.id;
         }
     }
 
-    playStartSound() {
-        if (!this.startSound) return;
-        this.startSound.currentTime = 0;
-        this.startSound.play().catch(() => {});
+    updateAllDisplays() {
+        this.stages.forEach((stage, index) => {
+            const elements = this.stageElements[stage.id];
+            if (!elements) return;
+            let displayTime;
+            if (this.isRunning && index === this.currentStageIndex) {
+                displayTime = stage.isExtra ? this.extraTime : this.timeLeftInStage;
+            } else if (this.isRunning && index < this.currentStageIndex) {
+                displayTime = 0;
+            } else {
+                displayTime = stage.isExtra ? this.extraTime : stage.duration * 60;
+            }
+            this.updateDisplay(stage, displayTime);
+        });
+        this.calculateAndDisplayTotalTime();
+    }
+
+    updateDisplay(stage, timeLeft) {
+        const elements = this.stageElements[stage.id];
+        if (!elements) return;
+        if (elements.display) elements.display.textContent = this.formatTime(timeLeft);
+        if (!stage.isExtra && elements.progress && elements.display) {
+            const duration = stage.duration * 60 || 1;
+            const progressPercent = Math.max(0, (timeLeft / duration) * 100);
+            elements.progress.style.width = `${progressPercent}%`;
+            const percentage = timeLeft / duration;
+            elements.display.className = 'timer-display';
+            if (percentage <= 0.2) elements.display.classList.add('red');
+            else if (percentage <= 0.5) elements.display.classList.add('orange');
+            else elements.display.classList.add('green');
+            elements.progress.style.backgroundColor = getComputedStyle(elements.display).color;
+        }
+    }
+
+    start() {
+        if (!this.currentEssayName) {
+            alert("Por favor, empieza un nuevo ensayo o selecciona uno guardado.");
+            return;
+        }
+        if (!this.isRunning) this.setCurrentStage();
+        this.isRunning = true;
+        this.isPaused = false;
+        clearInterval(this.intervalId);
+        this.intervalId = setInterval(() => this.tick(), 1000);
+        if (this.startBtn) {
+            this.startBtn.textContent = 'Reanudar';
+            this.startBtn.disabled = true;
+        }
+        if (this.pauseBtn) this.pauseBtn.disabled = false;
+        if (this.resetBtn) this.resetBtn.disabled = false;
+        this.updatePageTitle();
+    }
+
+    pause() {
+        this.isPaused = true;
+        if (this.startBtn) this.startBtn.disabled = !this.currentEssayName;
+        if (this.pauseBtn) this.pauseBtn.disabled = true;
+        this.saveState();
+        this.saveDailySession();
+        this.updatePageTitle();
+    }
+
+    reset(fullReset = false) {
+        clearInterval(this.intervalId);
+        this.isRunning = false;
+        this.isPaused = true;
+        this.currentStageIndex = 0;
+        this.extraTime = 0;
+        this.intervalId = null;
+        if (fullReset) {
+            if (this.essayNotes) this.essayNotes.value = '';
+            this.pomodorosCompleted = 0;
+            this.updatePomodoroDisplay();
+        }
+        if (fullReset && this.templateSelect) this.loadTemplate(this.templateSelect.value);
+        this.updateAllDisplays();
+        this.highlightCurrentStage();
+        this.updatePageTitle();
+        if (this.startBtn) {
+            this.startBtn.textContent = 'Empezar';
+            this.startBtn.disabled = !this.currentEssayName;
+        }
+        if (this.pauseBtn) this.pauseBtn.disabled = true;
+        if (this.resetBtn) this.resetBtn.disabled = !this.currentEssayName;
+        this.stages.forEach(s => {
+            if (this.stageElements[s.id]?.input) this.stageElements[s.id].input.disabled = false;
+        });
+        if (this.currentEssayName) this.saveState();
     }
 
     loadTemplates() {
@@ -786,111 +855,64 @@ class EssayTimer {
         return `${mins}:${secs}`;
     }
 
-    calculateAndDisplayTotalTime() {
-        const activeStages = this.stages.filter(stage => !stage.isExtra);
-        let totalSeconds = activeStages.reduce((acc, stage) => acc + (stage.duration * 60), 0);
-        if (this.totalTimeEl) this.totalTimeEl.textContent = `Tiempo Total: ${this.formatTime(totalSeconds)}`;
-    }
+    setupVisibilityHandler() {
+        const overlay = document.getElementById('floating-stage');
+        if (!overlay) return;
 
-    highlightCurrentStage() {
-        if (this.previousStageId && this.stageElements[this.previousStageId]?.container) {
-            this.stageElements[this.previousStageId].container.classList.remove('active-stage');
-        }
-        const current = this.stages[this.currentStageIndex];
-        if (current && this.stageElements[current.id]?.container) {
-            this.stageElements[current.id].container.classList.add('active-stage');
-            this.previousStageId = current.id;
-        }
-    }
+        const asistenteContainer = document.getElementById('asistente-container');
+        const assistantToggleBtn = document.getElementById('assistant-toggle-btn');
+        let interval;
+        let assistantWasHidden = false;
 
-    updateAllDisplays() {
-        this.stages.forEach((stage, index) => {
-            const elements = this.stageElements[stage.id];
-            if (!elements) return;
-            let displayTime;
-            if (this.isRunning && index === this.currentStageIndex) {
-                displayTime = stage.isExtra ? this.extraTime : this.timeLeftInStage;
-            } else if (this.isRunning && index < this.currentStageIndex) {
-                displayTime = 0;
+        const updateOverlay = () => {
+            const stage = this.stages[this.currentStageIndex];
+            if (!stage) return;
+            const time = stage.isExtra ? this.extraTime : this.timeLeftInStage;
+            overlay.textContent = `${stage.label}: ${this.formatTime(time)}`;
+        };
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                updateOverlay();
+                overlay.style.display = 'block';
+                clearInterval(interval);
+                interval = setInterval(updateOverlay, 1000);
+
+                if (asistenteContainer && asistenteContainer.style.display === 'none') {
+                    assistantWasHidden = true;
+                    asistenteContainer.style.display = 'flex';
+                    if (assistantToggleBtn) assistantToggleBtn.style.display = 'none';
+                } else {
+                    assistantWasHidden = false;
+                }
+
+                const stage = this.stages[this.currentStageIndex];
+                if (window.asistenteDecir && stage) {
+                    window.asistenteDecir(`Etapa actual: ${stage.label}`);
+                }
             } else {
-                displayTime = stage.isExtra ? this.extraTime : stage.duration * 60;
+                overlay.style.display = 'none';
+                clearInterval(interval);
+                if (assistantWasHidden && asistenteContainer) {
+                    asistenteContainer.style.display = 'none';
+                    if (assistantToggleBtn) assistantToggleBtn.style.display = 'block';
+                }
+                assistantWasHidden = false;
             }
-            this.updateDisplay(stage, displayTime);
         });
-        this.calculateAndDisplayTotalTime();
     }
 
-    updateDisplay(stage, timeLeft) {
-        const elements = this.stageElements[stage.id];
-        if (!elements) return;
-        if (elements.display) elements.display.textContent = this.formatTime(timeLeft);
-        if (!stage.isExtra && elements.progress && elements.display) {
-            const duration = stage.duration * 60 || 1;
-            const progressPercent = Math.max(0, (timeLeft / duration) * 100);
-            elements.progress.style.width = `${progressPercent}%`;
-            const percentage = timeLeft / duration;
-            elements.display.className = 'timer-display';
-            if (percentage <= 0.2) elements.display.classList.add('red');
-            else if (percentage <= 0.5) elements.display.classList.add('orange');
-            else elements.display.classList.add('green');
-            elements.progress.style.backgroundColor = getComputedStyle(elements.display).color;
+    playNotification() {
+        if (this.notificationSound) {
+            this.notificationSound.currentTime = 0;
+            this.notificationSound.play().catch(() => {});
         }
     }
 
-    start() {
-        if (!this.currentEssayName) {
-            alert("Por favor, empieza un nuevo ensayo o selecciona uno guardado.");
-            return;
-        }
-        if (!this.isRunning) this.setCurrentStage();
-        this.isRunning = true;
-        this.isPaused = false;
-        clearInterval(this.intervalId);
-        this.intervalId = setInterval(() => this.tick(), 1000);
-        if (this.startBtn) {
-            this.startBtn.textContent = 'Reanudar';
-            this.startBtn.disabled = true;
-        }
-        if (this.pauseBtn) this.pauseBtn.disabled = false;
-        if (this.resetBtn) this.resetBtn.disabled = false;
-        this.updatePageTitle();
-    }
-
-    pause() {
-        this.isPaused = true;
-        if (this.startBtn) this.startBtn.disabled = !this.currentEssayName;
-        if (this.pauseBtn) this.pauseBtn.disabled = true;
-        this.saveState();
-        this.saveDailySession();
-        this.updatePageTitle();
-    }
-
-    reset(fullReset = false) {
-        clearInterval(this.intervalId);
-        this.isRunning = false;
-        this.isPaused = true;
-        this.currentStageIndex = 0;
-        this.extraTime = 0;
-        this.intervalId = null;
-        if (fullReset) {
-            if (this.essayNotes) this.essayNotes.value = '';
-            this.pomodorosCompleted = 0;
-            this.updatePomodoroDisplay();
-        }
-        if (fullReset && this.templateSelect) this.loadTemplate(this.templateSelect.value);
-        this.updateAllDisplays();
-        this.highlightCurrentStage();
-        this.updatePageTitle();
-        if (this.startBtn) {
-            this.startBtn.textContent = 'Empezar';
-            this.startBtn.disabled = !this.currentEssayName;
-        }
-        if (this.pauseBtn) this.pauseBtn.disabled = true;
-        if (this.resetBtn) this.resetBtn.disabled = !this.currentEssayName;
-        this.stages.forEach(s => {
-            if (this.stageElements[s.id]?.input) this.stageElements[s.id].input.disabled = false;
-        });
-        if (this.currentEssayName) this.saveState();
+    playStartSound() {
+        if (!this.startSound) return;
+        this.startSound.currentTime = 0;
+        this.startSound.play().catch(() => {});
     }
 }
 
