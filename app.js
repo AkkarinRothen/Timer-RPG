@@ -105,9 +105,9 @@ class EssayTimer {
         this.notificationSound = document.getElementById('notification-sound');
         this.startSound = document.getElementById('start-sound');
         this.monsterNameEl = document.getElementById('monster-name');
-        this.monsterHpEl = document.getElementById('monster-hp'); // fallback textual
-        this.monsterHealthBarEl = document.getElementById('monster-health-bar'); // visual bar
-        this.monsterImgEl = document.getElementById('monster-img'); // optional image
+        this.monsterHpEl = document.getElementById('monster-hp');
+        this.monsterHealthBarEl = document.getElementById('monster-health-bar');
+        this.monsterImgEl = document.getElementById('monster-img');
         this.missionSelect = document.getElementById('mission-select');
         this.newMissionBtn = document.getElementById('new-mission-btn');
         this.missionDescEl = document.getElementById('mission-desc');
@@ -210,93 +210,6 @@ class EssayTimer {
         }
     }
 
-    // Missions
-    loadMissions() {
-        let missions = db.get('missions') || {};
-        if (Object.keys(missions).length === 0) {
-            missions = defaultMissions;
-            db.set('missions', missions);
-        }
-        if (this.missionSelect) {
-            this.missionSelect.innerHTML = '<option value="">Seleccionar Misi\u00f3n</option>';
-            for (const key in missions) {
-                const option = document.createElement('option');
-                option.value = key;
-                option.textContent = missions[key].name;
-                this.missionSelect.appendChild(option);
-            }
-        }
-    }
-
-    loadMission(key) {
-        if (!key) {
-            this.currentMissionKey = null;
-            this.currentMission = null;
-            this.currentRoomIndex = 0;
-            if (this.missionDescEl) this.missionDescEl.textContent = '';
-            if (this.missionSelect) this.missionSelect.value = '';
-            return;
-        }
-        const missions = db.get('missions');
-        if (!missions || !missions[key]) return;
-        this.currentMissionKey = key;
-        this.currentMission = missions[key];
-        this.currentRoomIndex = 0;
-        if (this.missionDescEl) this.missionDescEl.textContent = this.currentMission.description || '';
-        if (this.missionSelect) this.missionSelect.value = key;
-        this.advanceRoom();
-    }
-
-    createNewMission() {
-        const name = prompt('Nombre de la misi\u00f3n:', 'Nueva Misi\u00f3n');
-        if (!name) return;
-        const roomsCount = parseInt(prompt('N\u00famero de salas:', '3'), 10) || 3;
-        const difficulty = prompt('Dificultad (F\u00e1cil/Normal/Dif\u00edcil):', 'F\u00e1cil');
-        const rooms = [];
-        for (let i = 0; i < roomsCount - 1; i++) {
-            const r = Math.random();
-            if (r < 0.5) {
-                rooms.push({ type: 'monster', monsterIndex: Math.floor(Math.random() * defaultMonsters.length) });
-            } else if (r < 0.8) {
-                rooms.push({ type: 'item', item: 'Tesoro' });
-            } else {
-                rooms.push({ type: 'empty' });
-            }
-        }
-        const bossIndex = Math.floor(Math.random() * defaultMonsters.length);
-        rooms.push({ type: 'monster', monsterIndex: bossIndex });
-        const missionKey = name.toLowerCase().replace(/\s+/g, '-');
-        const mission = { name, difficulty, description: `Derrota al ${defaultMonsters[bossIndex].name} para completar la misi\u00f3n.`, rooms };
-        let missions = db.get('missions') || {};
-        missions[missionKey] = mission;
-        db.set('missions', missions);
-        this.loadMissions();
-        if (this.missionSelect) this.missionSelect.value = missionKey;
-        this.loadMission(missionKey);
-    }
-
-    advanceRoom() {
-        if (!this.currentMission) return;
-        if (this.currentRoomIndex >= this.currentMission.rooms.length) {
-            alert(`\u00a1Has completado la misi\u00f3n ${this.currentMission.name}!`);
-            this.loadMission('');
-            return;
-        }
-        const room = this.currentMission.rooms[this.currentRoomIndex];
-        if (room.type === 'monster') {
-            this.loadMonster(room.monsterIndex);
-            this.updateMonsterHUD();
-        } else if (room.type === 'item') {
-            alert(`Encontraste: ${room.item}`);
-            this.currentRoomIndex++;
-            this.advanceRoom();
-        } else {
-            alert('La sala est\u00e1 vac\u00eda.');
-            this.currentRoomIndex++;
-            this.advanceRoom();
-        }
-    }
-
     loadMonster(index) {
         if (index >= defaultMonsters.length) {
             this.currentMonster = null;
@@ -313,6 +226,7 @@ class EssayTimer {
         const base = defaultMonsters[index];
         this.currentMonster = { name: base.name, hp: base.maxHP, maxHP: base.maxHP, img: base.img };
         this.saveCurrentMonster();
+        this.updateMonsterHUD();
     }
 
     loadNextMonster() {
@@ -352,6 +266,98 @@ class EssayTimer {
         }
         if (this.monsterImgEl && this.currentMonster.img) {
             this.monsterImgEl.src = this.currentMonster.img;
+        }
+    }
+
+    // Missions
+    loadMissions() {
+        let missions = db.get('missions') || {};
+        if (Object.keys(missions).length === 0) {
+            missions = defaultMissions;
+            db.set('missions', missions);
+        }
+        if (this.missionSelect) {
+            this.missionSelect.innerHTML = '<option value="">Seleccionar Misión</option>';
+            for (const key in missions) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = missions[key].name;
+                this.missionSelect.appendChild(option);
+            }
+        }
+    }
+
+    loadMission(key) {
+        if (!key) {
+            this.currentMissionKey = null;
+            this.currentMission = null;
+            this.currentRoomIndex = 0;
+            if (this.missionDescEl) this.missionDescEl.textContent = '';
+            if (this.missionSelect) this.missionSelect.value = '';
+            return;
+        }
+        const missions = db.get('missions');
+        if (!missions || !missions[key]) return;
+        this.currentMissionKey = key;
+        this.currentMission = missions[key];
+        this.currentRoomIndex = 0;
+        if (this.missionDescEl) this.missionDescEl.textContent = this.currentMission.description || '';
+        if (this.missionSelect) this.missionSelect.value = key;
+        this.advanceRoom();
+    }
+
+    createNewMission() {
+        const name = prompt('Nombre de la misión:', 'Nueva Misión');
+        if (!name) return;
+        const roomsCount = parseInt(prompt('Número de salas:', '3'), 10) || 3;
+        const difficulty = prompt('Dificultad (Fácil/Normal/Difícil):', 'Fácil');
+        const rooms = [];
+        for (let i = 0; i < roomsCount - 1; i++) {
+            const r = Math.random();
+            if (r < 0.5) {
+                rooms.push({ type: 'monster', monsterIndex: Math.floor(Math.random() * defaultMonsters.length) });
+            } else if (r < 0.8) {
+                rooms.push({ type: 'item', item: 'Tesoro' });
+            } else {
+                rooms.push({ type: 'empty' });
+            }
+        }
+        const bossIndex = Math.floor(Math.random() * defaultMonsters.length);
+        rooms.push({ type: 'monster', monsterIndex: bossIndex });
+        const missionKey = name.toLowerCase().replace(/\s+/g, '-');
+        const mission = {
+            name,
+            difficulty,
+            description: `Derrota al ${defaultMonsters[bossIndex].name} para completar la misión.`,
+            rooms
+        };
+        let missions = db.get('missions') || {};
+        missions[missionKey] = mission;
+        db.set('missions', missions);
+        this.loadMissions();
+        if (this.missionSelect) this.missionSelect.value = missionKey;
+        this.loadMission(missionKey);
+    }
+
+    advanceRoom() {
+        if (!this.currentMission) return;
+        if (this.currentRoomIndex >= this.currentMission.rooms.length) {
+            alert(`¡Has completado la misión ${this.currentMission.name}!`);
+            this.loadMission('');
+            return;
+        }
+        const room = this.currentMission.rooms[this.currentRoomIndex];
+        if (room.type === 'monster') {
+            this.loadMonster(room.monsterIndex);
+            this.updateMonsterHUD();
+        } else if (room.type === 'item') {
+            alert(`Encontraste: ${room.item}`);
+            this.currentRoomIndex++;
+            this.advanceRoom();
+        } else {
+            alert('La sala está vacía.');
+            this.currentRoomIndex++;
+            this.advanceRoom();
         }
     }
 
@@ -429,7 +435,11 @@ class EssayTimer {
     toggleEditMode(forceOff = false) {
         this.isEditMode = forceOff ? false : !this.isEditMode;
         document.body.classList.toggle('edit-mode-active', this.isEditMode);
-        const mainControls = [this.startBtn, this.pauseBtn, this.resetBtn, this.newEssayBtn, this.essayNameInput, this.savedEssaysSelect, this.deleteEssayBtn, this.templateSelect];
+        const mainControls = [
+            this.startBtn, this.pauseBtn, this.resetBtn,
+            this.newEssayBtn, this.essayNameInput,
+            this.savedEssaysSelect, this.deleteEssayBtn, this.templateSelect
+        ];
         mainControls.forEach(c => { if (c) c.disabled = this.isEditMode; });
         if (this.isEditMode) this.stagesBackup = JSON.parse(JSON.stringify(this.stages));
     }
@@ -590,204 +600,6 @@ class EssayTimer {
         if (this.backgroundInput) this.backgroundInput.value = '';
     }
 
-    setupVisibilityHandler() {
-        const overlay = document.getElementById('floating-stage');
-        if (!overlay) return;
-
-        const asistenteContainer = document.getElementById('asistente-container');
-        const assistantToggleBtn = document.getElementById('assistant-toggle-btn');
-        let interval;
-        let assistantWasHidden = false;
-
-        const updateOverlay = () => {
-            const stage = this.stages[this.currentStageIndex];
-            if (!stage) return;
-            const time = stage.isExtra ? this.extraTime : this.timeLeftInStage;
-            overlay.textContent = `${stage.label}: ${this.formatTime(time)}`;
-        };
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                updateOverlay();
-                overlay.style.display = 'block';
-                clearInterval(interval);
-                interval = setInterval(updateOverlay, 1000);
-
-                if (asistenteContainer && asistenteContainer.style.display === 'none') {
-                    assistantWasHidden = true;
-                    asistenteContainer.style.display = 'flex';
-                    if (assistantToggleBtn) assistantToggleBtn.style.display = 'none';
-                } else {
-                    assistantWasHidden = false;
-                }
-
-                const stage = this.stages[this.currentStageIndex];
-                if (window.asistenteDecir && stage) {
-                    window.asistenteDecir(`Etapa actual: ${stage.label}`);
-                }
-            } else {
-                overlay.style.display = 'none';
-                clearInterval(interval);
-                if (assistantWasHidden && asistenteContainer) {
-                    asistenteContainer.style.display = 'none';
-                    if (assistantToggleBtn) assistantToggleBtn.style.display = 'block';
-                }
-                assistantWasHidden = false;
-            }
-        });
-    }
-
-    playNotification() {
-        if (this.notificationSound) {
-            this.notificationSound.currentTime = 0;
-            this.notificationSound.play().catch(() => {});
-        }
-    }
-
-    playStartSound() {
-        if (!this.startSound) return;
-        this.startSound.currentTime = 0;
-        this.startSound.play().catch(() => {});
-    }
-
-    loadTemplates() {
-        let templates = db.get('templates') || {};
-        if (Object.keys(templates).length === 0) {
-            templates = { default: defaultTemplate, pomodoro30: pomodoro30Template };
-            db.set('templates', templates);
-        } else if (!templates.pomodoro30) {
-            templates.pomodoro30 = pomodoro30Template;
-            db.set('templates', templates);
-        }
-        if (this.templateSelect) {
-            this.templateSelect.innerHTML = '';
-            for (const key in templates) {
-                const option = document.createElement('option');
-                option.value = key;
-                option.textContent = templates[key].name;
-                this.templateSelect.appendChild(option);
-            }
-        }
-    }
-
-    loadTemplate(templateKey) {
-        if (this.isEditMode) return;
-        const templates = db.get('templates');
-        if (!templates || !templates[templateKey]) return;
-        this.stages = JSON.parse(JSON.stringify(templates[templateKey].stages));
-        this.renderStages();
-        this.reset();
-    }
-
-    populateSavedEssays() {
-        const essayIndex = db.get('index') || [];
-        if (this.savedEssaysSelect) {
-            this.savedEssaysSelect.innerHTML = '<option value="">Cargar Ensayo Guardado</option>';
-            essayIndex.forEach(essayKey => {
-                const essayData = db.get(essayKey);
-                const option = document.createElement('option');
-                option.value = essayKey;
-                const modifiedDate = essayData?.lastModified ? new Date(essayData.lastModified).toLocaleString('es-AR') : 'N/A';
-                option.textContent = `${essayKey} (Guardado: ${modifiedDate})`;
-                this.savedEssaysSelect.appendChild(option);
-            });
-        }
-    }
-
-    saveState() {
-        if (!this.currentEssayName) return;
-        const state = {
-            lastModified: new Date().toISOString(),
-            templateKey: this.templateSelect?.value,
-            stages: this.stages,
-            currentStageIndex: this.currentStageIndex,
-            timeLeftInStage: this.timeLeftInStage,
-            extraTime: this.extraTime,
-            isRunning: this.isRunning,
-            isPaused: this.isPaused,
-            notes: this.essayNotes?.value
-        };
-        db.set(this.currentEssayName, state);
-    }
-
-    loadState(essayName) {
-        const state = db.get(essayName);
-        if (!state) return;
-        this.currentEssayName = essayName;
-        if (this.templateSelect) this.templateSelect.value = state.templateKey;
-        this.stages = state.stages;
-        this.currentStageIndex = state.currentStageIndex;
-        this.timeLeftInStage = state.timeLeftInStage;
-        this.extraTime = state.extraTime;
-        this.isRunning = state.isRunning;
-        this.isPaused = state.isPaused;
-        if (this.essayNotes) this.essayNotes.value = state.notes || '';
-        this.renderStages();
-        this.updateAllDisplays();
-        if (this.pauseBtn) this.pauseBtn.disabled = this.isPaused;
-        if (this.startBtn) this.startBtn.disabled = !this.isPaused;
-        if (this.resetBtn) this.resetBtn.disabled = false;
-        if (this.isRunning && !this.isPaused) {
-            if (this.startBtn) this.startBtn.textContent = 'Reanudar';
-            this.start();
-        } else {
-            this.pause();
-        }
-    }
-
-    startNewEssay() {
-        const name = this.essayNameInput?.value.trim();
-        if (!name) {
-            alert('Por favor, introduce un nombre para tu ensayo.');
-            return;
-        }
-        let essays = db.get('index') || [];
-        if (!essays.includes(name)) {
-            essays.push(name);
-            db.set('index', essays);
-        }
-        this.currentEssayName = name;
-        if (this.essayNameInput) this.essayNameInput.value = '';
-        if (this.templateSelect) this.loadTemplate(this.templateSelect.value);
-        this.reset(true);
-        this.saveState();
-        this.populateSavedEssays();
-        if (this.savedEssaysSelect) this.savedEssaysSelect.value = name;
-        if (this.deleteEssayBtn) this.deleteEssayBtn.disabled = false;
-        this.start();
-    }
-
-    loadSelectedEssay() {
-        if (this.isEditMode) return;
-        const name = this.savedEssaysSelect?.value;
-        if (this.deleteEssayBtn) this.deleteEssayBtn.disabled = !name;
-        if (name) {
-            clearInterval(this.intervalId);
-            this.loadState(name);
-        } else {
-            this.currentEssayName = null;
-            this.reset();
-        }
-    }
-
-    deleteSelectedEssay() {
-        const name = this.savedEssaysSelect?.value;
-        if (!name || !confirm(`¿Seguro que quieres borrar "${name}"? Esta acción no se puede deshacer.`)) return;
-        db.remove(name);
-        let essays = db.get('index') || [];
-        essays = essays.filter(e => e !== name);
-        db.set('index', essays);
-        this.populateSavedEssays();
-        this.currentEssayName = null;
-        this.reset();
-    }
-
-    formatTime(seconds) {
-        const mins = Math.floor(Math.abs(seconds) / 60).toString().padStart(2, '0');
-        const secs = (Math.abs(seconds) % 60).toString().padStart(2, '0');
-        return `${mins}:${secs}`;
-    }
-
     calculateAndDisplayTotalTime() {
         const activeStages = this.stages.filter(stage => !stage.isExtra);
         let totalSeconds = activeStages.reduce((acc, stage) => acc + (stage.duration * 60), 0);
@@ -836,6 +648,109 @@ class EssayTimer {
             else if (percentage <= 0.5) elements.display.classList.add('orange');
             else elements.display.classList.add('green');
             elements.progress.style.backgroundColor = getComputedStyle(elements.display).color;
+        }
+    }
+
+    saveState() {
+        if (!this.currentEssayName) return;
+        const state = {
+            lastModified: new Date().toISOString(),
+            templateKey: this.templateSelect?.value,
+            stages: this.stages,
+            currentStageIndex: this.currentStageIndex,
+            timeLeftInStage: this.timeLeftInStage,
+            extraTime: this.extraTime,
+            isRunning: this.isRunning,
+            isPaused: this.isPaused,
+            notes: this.essayNotes?.value
+        };
+        db.set(this.currentEssayName, state);
+    }
+
+    loadState(essayName) {
+        const state = db.get(essayName);
+        if (!state) return;
+        this.currentEssayName = essayName;
+        if (this.templateSelect) this.templateSelect.value = state.templateKey;
+        this.stages = state.stages;
+        this.currentStageIndex = state.currentStageIndex;
+        this.timeLeftInStage = state.timeLeftInStage;
+        this.extraTime = state.extraTime;
+        this.isRunning = state.isRunning;
+        this.isPaused = state.isPaused;
+        if (this.essayNotes) this.essayNotes.value = state.notes || '';
+        this.renderStages();
+        this.updateAllDisplays();
+        if (this.pauseBtn) this.pauseBtn.disabled = this.isPaused;
+        if (this.startBtn) this.startBtn.disabled = !this.isPaused;
+        if (this.resetBtn) this.resetBtn.disabled = false;
+        if (this.isRunning && !this.isPaused) {
+            if (this.startBtn) this.startBtn.textContent = 'Reanudar';
+            this.start();
+        } else {
+            this.pause();
+        }
+    }
+
+    setupVisibilityHandler() {
+        const overlay = document.getElementById('floating-stage');
+        if (!overlay) return;
+
+        const asistenteContainer = document.getElementById('asistente-container');
+        const assistantToggleBtn = document.getElementById('assistant-toggle-btn');
+        let interval;
+        let assistantWasHidden = false;
+
+        const updateOverlay = () => {
+            const stage = this.stages[this.currentStageIndex];
+            if (!stage) return;
+            const time = stage.isExtra ? this.extraTime : this.timeLeftInStage;
+            overlay.textContent = `${stage.label}: ${this.formatTime(time)}`;
+        };
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                updateOverlay();
+                overlay.style.display = 'block';
+                clearInterval(interval);
+                interval = setInterval(updateOverlay, 1000);
+
+                if (asistenteContainer && asistenteContainer.style.display === 'none') {
+                    assistantWasHidden = true;
+                    asistenteContainer.style.display = 'flex';
+                    if (assistantToggleBtn) assistantToggleBtn.style.display = 'none';
+                } else {
+                    assistantWasHidden = false;
+                }
+
+                const stage = this.stages[this.currentStageIndex];
+                if (window.asistenteDecir && stage) {
+                    window.asistenteDecir(`Etapa actual: ${stage.label}`);
+                }
+            } else {
+                overlay.style.display = 'none';
+                clearInterval(interval);
+                if (assistantWasHidden && asistenteContainer) {
+                    asistenteContainer.style.display = 'none';
+                    if (assistantToggleBtn) assistantToggleBtn.style.display = 'block';
+                }
+                assistantWasHidden = false;
+            }
+        });
+    }
+
+    populateSavedEssays() {
+        const essayIndex = db.get('index') || [];
+        if (this.savedEssaysSelect) {
+            this.savedEssaysSelect.innerHTML = '<option value="">Cargar Ensayo Guardado</option>';
+            essayIndex.forEach(essayKey => {
+                const essayData = db.get(essayKey);
+                const option = document.createElement('option');
+                option.value = essayKey;
+                const modifiedDate = essayData?.lastModified ? new Date(essayData.lastModified).toLocaleString('es-AR') : 'N/A';
+                option.textContent = `${essayKey} (Guardado: ${modifiedDate})`;
+                this.savedEssaysSelect.appendChild(option);
+            });
         }
     }
 
@@ -893,6 +808,95 @@ class EssayTimer {
             if (this.stageElements[s.id]?.input) this.stageElements[s.id].input.disabled = false;
         });
         if (this.currentEssayName) this.saveState();
+    }
+
+    loadTemplates() {
+        let templates = db.get('templates') || {};
+        if (Object.keys(templates).length === 0) {
+            templates = { default: defaultTemplate, pomodoro30: pomodoro30Template };
+            db.set('templates', templates);
+        } else if (!templates.pomodoro30) {
+            templates.pomodoro30 = pomodoro30Template;
+            db.set('templates', templates);
+        }
+        if (this.templateSelect) {
+            this.templateSelect.innerHTML = '';
+            for (const key in templates) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = templates[key].name;
+                this.templateSelect.appendChild(option);
+            }
+        }
+    }
+
+    loadTemplate(templateKey) {
+        if (this.isEditMode) return;
+        const templates = db.get('templates');
+        if (!templates || !templates[templateKey]) return;
+        this.stages = JSON.parse(JSON.stringify(templates[templateKey].stages));
+        this.renderStages();
+        this.reset();
+    }
+
+    loadSelectedEssay() {
+        if (this.isEditMode) return;
+        const name = this.savedEssaysSelect?.value;
+        if (this.deleteEssayBtn) this.deleteEssayBtn.disabled = !name;
+        if (name) {
+            clearInterval(this.intervalId);
+            this.loadState(name);
+        } else {
+            this.currentEssayName = null;
+            this.reset();
+        }
+    }
+
+    deleteSelectedEssay() {
+        const name = this.savedEssaysSelect?.value;
+        if (!name || !confirm(`¿Seguro que quieres borrar "${name}"? Esta acción no se puede deshacer.`)) return;
+        db.remove(name);
+        let essays = db.get('index') || [];
+        essays = essays.filter(e => e !== name);
+        db.set('index', essays);
+        this.populateSavedEssays();
+        this.currentEssayName = null;
+        this.reset();
+    }
+
+    startNewEssay() {
+        const name = this.essayNameInput?.value.trim();
+        if (!name) {
+            alert('Por favor, introduce un nombre para tu ensayo.');
+            return;
+        }
+        let essays = db.get('index') || [];
+        if (!essays.includes(name)) {
+            essays.push(name);
+            db.set('index', essays);
+        }
+        this.currentEssayName = name;
+        if (this.essayNameInput) this.essayNameInput.value = '';
+        if (this.templateSelect) this.loadTemplate(this.templateSelect.value);
+        this.reset(true);
+        this.saveState();
+        this.populateSavedEssays();
+        if (this.savedEssaysSelect) this.savedEssaysSelect.value = name;
+        if (this.deleteEssayBtn) this.deleteEssayBtn.disabled = false;
+        this.start();
+    }
+
+    playNotification() {
+        if (this.notificationSound) {
+            this.notificationSound.currentTime = 0;
+            this.notificationSound.play().catch(() => {});
+        }
+    }
+
+    playStartSound() {
+        if (!this.startSound) return;
+        this.startSound.currentTime = 0;
+        this.startSound.play().catch(() => {});
     }
 }
 

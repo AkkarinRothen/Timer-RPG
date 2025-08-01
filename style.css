@@ -56,6 +56,7 @@ body {
     font-size: 28px;
     color: white;
 }
+
 .icon-start::before { content: '🚪'; }
 .icon-battle::before { content: '⚔️'; color: #e53935; }
 .icon-curio::before { content: '❓'; color: #03a9f4; }

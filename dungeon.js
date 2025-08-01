@@ -59,19 +59,26 @@ const timerDisplay = document.getElementById('timer-display');
 const statusMessage = document.getElementById('status-message');
 
 function setGridSize() {
+    if (!mapContainer) return;
     let maxX = 0;
     let maxY = 0;
     const consider = point => {
+        if (!Array.isArray(point) || point.length < 2) return;
         if (point[0] > maxX) maxX = point[0];
         if (point[1] > maxY) maxY = point[1];
     };
     Object.values(dungeonData.rooms).forEach(r => consider(r.coords));
     Object.values(dungeonData.corridors).forEach(c => c.sections.forEach(s => consider(s.coords)));
-    mapContainer.style.gridTemplateColumns = `repeat(${maxX}, 60px)`;
-    mapContainer.style.gridTemplateRows = `repeat(${maxY}, 60px)`;
+    const cols = Math.max(1, maxX);
+    const rows = Math.max(1, maxY);
+    mapContainer.style.display = 'grid';
+    mapContainer.style.gridTemplateColumns = `repeat(${cols}, 60px)`;
+    mapContainer.style.gridTemplateRows = `repeat(${rows}, 60px)`;
 }
 
 function drawMap() {
+    if (!mapContainer) return;
+    mapContainer.innerHTML = ''; // limpiar anterior
     for (const roomId in dungeonData.rooms) {
         createTile(roomId, dungeonData.rooms[roomId], 'room');
     }
@@ -83,18 +90,21 @@ function drawMap() {
 }
 
 function createTile(id, data, type) {
+    if (!mapContainer) return;
     const tile = document.createElement('div');
     tile.id = id;
     tile.className = 'map-tile status-unexplored';
-    tile.style.gridColumn = data.coords[0];
-    tile.style.gridRow = data.coords[1];
+    if (Array.isArray(data.coords)) {
+        tile.style.gridColumn = data.coords[0];
+        tile.style.gridRow = data.coords[1];
+    }
     tile.addEventListener('click', () => onTileClick(id, type));
     mapContainer.appendChild(tile);
 }
 
 function onTileClick(id, type) {
     const tileEl = document.getElementById(id);
-    if (gameState.status !== 'AWAITING_CHOICE' || !tileEl.classList.contains('selectable')) return;
+    if (gameState.status !== 'AWAITING_CHOICE' || !tileEl || !tileEl.classList.contains('selectable')) return;
 
     document.querySelectorAll('.selectable').forEach(el => el.classList.remove('selectable'));
 
@@ -123,13 +133,14 @@ function handleRestTimerEnd() {
 }
 
 function startTimer(duration, onEnd) {
-    clearInterval(gameState.timer);
+    if (gameState.timer) clearInterval(gameState.timer);
     gameState.timeRemaining = duration;
     gameState.timer = setInterval(() => {
         gameState.timeRemaining--;
         updateTimerDisplay();
         if (gameState.timeRemaining <= 0) {
             clearInterval(gameState.timer);
+            gameState.timer = null;
             onEnd();
         }
     }, 1000);
@@ -137,6 +148,8 @@ function startTimer(duration, onEnd) {
 }
 
 function highlightSelectableTiles() {
+    // limpiar previos
+    document.querySelectorAll('.selectable').forEach(el => el.classList.remove('selectable'));
     const neighbors = getNeighbors(gameState.currentLocationId);
     neighbors.forEach(id => {
         const el = document.getElementById(id);
@@ -156,7 +169,9 @@ function updatePlayerPosition() {
     if (!gameState.visited.has(gameState.currentLocationId)) {
         gameState.visited.add(gameState.currentLocationId);
         const data = findTileData(gameState.currentLocationId);
-        el.classList.add(`icon-${data.content}`);
+        if (data) {
+            el.classList.add(`icon-${data.content}`);
+        }
         el.classList.remove('status-unexplored');
         el.classList.add('status-visited');
     }
@@ -165,11 +180,13 @@ function updatePlayerPosition() {
 function updateTimerDisplay() {
     const m = Math.floor(gameState.timeRemaining / 60);
     const s = gameState.timeRemaining % 60;
-    timerDisplay.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    if (timerDisplay) {
+        timerDisplay.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
 }
 
 function updateStatusMessage(msg) {
-    statusMessage.textContent = msg;
+    if (statusMessage) statusMessage.textContent = msg;
 }
 
 function findTileData(id) {
@@ -182,21 +199,40 @@ function findTileData(id) {
 }
 
 function getNeighbors(id) {
+    const neighbors = new Set();
     const data = findTileData(id);
     if (!data) return [];
-    if (data.connections) {
-        return Object.values(data.connections).map(c => dungeonData.corridors[c].sections[0].id);
+
+    // Si es una sala, conecta a secciones de pasillo según conexiones
+    if (dungeonData.rooms[id]) {
+        const connections = data.connections || {};
+        for (const dir in connections) {
+            const corridorId = connections[dir];
+            const corridor = dungeonData.corridors[corridorId];
+            if (!corridor) continue;
+            if (corridor.from === id) {
+                if (corridor.sections[0]) neighbors.add(corridor.sections[0].id);
+            } else if (corridor.to === id) {
+                const last = corridor.sections[corridor.sections.length - 1];
+                if (last) neighbors.add(last.id);
+            }
+        }
     } else {
+        // Es una sección de corredor: encontrar adyacentes y posibles salas finales
         for (const cId in dungeonData.corridors) {
             const corridor = dungeonData.corridors[cId];
-            const index = corridor.sections.findIndex(s => s.id === id);
-            if (index !== -1) {
-                if (index < corridor.sections.length - 1) return [corridor.sections[index + 1].id];
-                return [corridor.to];
+            const idx = corridor.sections.findIndex(s => s.id === id);
+            if (idx !== -1) {
+                if (idx > 0) neighbors.add(corridor.sections[idx - 1].id);
+                if (idx < corridor.sections.length - 1) neighbors.add(corridor.sections[idx + 1].id);
+                if (idx === 0 && corridor.from) neighbors.add(corridor.from);
+                if (idx === corridor.sections.length - 1 && corridor.to) neighbors.add(corridor.to);
+                break;
             }
         }
     }
-    return [];
+
+    return Array.from(neighbors);
 }
 
 function init() {
@@ -208,8 +244,4 @@ function init() {
     startWorkTimer();
 }
 
-if (document.readyState !== 'loading') {
-    init();
-} else {
-    document.addEventListener('DOMContentLoaded', init);
-}
+document.addEventListener('DOMContentLoaded', init);
