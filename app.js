@@ -54,6 +54,19 @@ const defaultMonsters = [
     }
 ];
 
+const defaultMissions = {
+    tutorial: {
+        name: 'Bosque Inicial',
+        difficulty: 'Fácil',
+        description: 'Explora el bosque y derrota al Slime.',
+        rooms: [
+            { type: 'empty' },
+            { type: 'monster', monsterIndex: 0 },
+            { type: 'item', item: 'Poción Curativa' }
+        ]
+    }
+};
+
 const DAMAGE_PER_STAGE = 5;
 
 let db;
@@ -95,6 +108,9 @@ class EssayTimer {
         this.monsterHpEl = document.getElementById('monster-hp'); // fallback textual
         this.monsterHealthBarEl = document.getElementById('monster-health-bar'); // visual bar
         this.monsterImgEl = document.getElementById('monster-img'); // optional image
+        this.missionSelect = document.getElementById('mission-select');
+        this.newMissionBtn = document.getElementById('new-mission-btn');
+        this.missionDescEl = document.getElementById('mission-desc');
 
         // State
         this.stages = [];
@@ -113,6 +129,11 @@ class EssayTimer {
         this.currentMonsterIndex = 0;
         this.currentMonster = null;
 
+        // Missions
+        this.currentMissionKey = null;
+        this.currentMission = null;
+        this.currentRoomIndex = 0;
+
         this.init();
     }
 
@@ -127,6 +148,8 @@ class EssayTimer {
         this.loadTheme();
         this.loadBackgroundImage();
         this.loadCurrentMonster();
+        this.loadMissions();
+        this.loadMission(this.missionSelect?.value);
         this.updateMonsterHUD();
         this.setupVisibilityHandler();
     }
@@ -187,6 +210,91 @@ class EssayTimer {
         }
     }
 
+    // Missions
+    loadMissions() {
+        let missions = db.get('missions') || {};
+        if (Object.keys(missions).length === 0) {
+            missions = defaultMissions;
+            db.set('missions', missions);
+        }
+        if (this.missionSelect) {
+            this.missionSelect.innerHTML = '<option value="">Seleccionar Misi\u00f3n</option>';
+            for (const key in missions) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = missions[key].name;
+                this.missionSelect.appendChild(option);
+            }
+        }
+    }
+
+    loadMission(key) {
+        if (!key) {
+            this.currentMissionKey = null;
+            this.currentMission = null;
+            this.currentRoomIndex = 0;
+            if (this.missionDescEl) this.missionDescEl.textContent = '';
+            return;
+        }
+        const missions = db.get('missions');
+        if (!missions || !missions[key]) return;
+        this.currentMissionKey = key;
+        this.currentMission = missions[key];
+        this.currentRoomIndex = 0;
+        if (this.missionDescEl) this.missionDescEl.textContent = this.currentMission.description || '';
+        this.advanceRoom();
+    }
+
+    createNewMission() {
+        const name = prompt('Nombre de la misi\u00f3n:', 'Nueva Misi\u00f3n');
+        if (!name) return;
+        const roomsCount = parseInt(prompt('N\u00famero de salas:', '3'), 10) || 3;
+        const difficulty = prompt('Dificultad (F\u00e1cil/Normal/Dif\u00edcil):', 'F\u00e1cil');
+        const rooms = [];
+        for (let i = 0; i < roomsCount - 1; i++) {
+            const r = Math.random();
+            if (r < 0.5) {
+                rooms.push({ type: 'monster', monsterIndex: Math.floor(Math.random() * defaultMonsters.length) });
+            } else if (r < 0.8) {
+                rooms.push({ type: 'item', item: 'Tesoro' });
+            } else {
+                rooms.push({ type: 'empty' });
+            }
+        }
+        const bossIndex = Math.floor(Math.random() * defaultMonsters.length);
+        rooms.push({ type: 'monster', monsterIndex: bossIndex });
+        const missionKey = name.toLowerCase().replace(/\s+/g, '-');
+        const mission = { name, difficulty, description: `Derrota al ${defaultMonsters[bossIndex].name} para completar la misi\u00f3n.`, rooms };
+        let missions = db.get('missions') || {};
+        missions[missionKey] = mission;
+        db.set('missions', missions);
+        this.loadMissions();
+        if (this.missionSelect) this.missionSelect.value = missionKey;
+        this.loadMission(missionKey);
+    }
+
+    advanceRoom() {
+        if (!this.currentMission) return;
+        if (this.currentRoomIndex >= this.currentMission.rooms.length) {
+            alert(`\u00a1Has completado la misi\u00f3n ${this.currentMission.name}!`);
+            this.loadMission('');
+            return;
+        }
+        const room = this.currentMission.rooms[this.currentRoomIndex];
+        if (room.type === 'monster') {
+            this.loadMonster(room.monsterIndex);
+            this.updateMonsterHUD();
+        } else if (room.type === 'item') {
+            alert(`Encontraste: ${room.item}`);
+            this.currentRoomIndex++;
+            this.advanceRoom();
+        } else {
+            alert('La sala est\u00e1 vac\u00eda.');
+            this.currentRoomIndex++;
+            this.advanceRoom();
+        }
+    }
+
     loadMonster(index) {
         if (index >= defaultMonsters.length) {
             this.currentMonster = null;
@@ -206,8 +314,13 @@ class EssayTimer {
     }
 
     loadNextMonster() {
-        this.loadMonster(this.currentMonsterIndex + 1);
-        this.updateMonsterHUD();
+        if (this.currentMission) {
+            this.currentRoomIndex++;
+            this.advanceRoom();
+        } else {
+            this.loadMonster(this.currentMonsterIndex + 1);
+            this.updateMonsterHUD();
+        }
     }
 
     changeMonsterHP(delta) {
@@ -420,6 +533,8 @@ class EssayTimer {
         if (this.cancelEditBtn) this.cancelEditBtn.addEventListener('click', () => this.cancelEdit());
         if (this.addStageBtn) this.addStageBtn.addEventListener('click', () => this.addStage());
         if (this.essayNotes) this.essayNotes.addEventListener('input', () => this.debouncedSave());
+        if (this.missionSelect) this.missionSelect.addEventListener('change', (e) => this.loadMission(e.target.value));
+        if (this.newMissionBtn) this.newMissionBtn.addEventListener('click', () => this.createNewMission());
 
         window.addEventListener('beforeunload', () => this.saveDailySession());
     }
