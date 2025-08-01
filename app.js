@@ -27,6 +27,7 @@ const pomodoro30Template = {
 };
 
 let db;
+let currentMonster;
 class EssayTimer {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
@@ -61,6 +62,8 @@ class EssayTimer {
         this.essayNotes = document.getElementById('essay-notes');
         this.notificationSound = document.getElementById('notification-sound');
         this.startSound = document.getElementById('start-sound');
+        this.monsterNameEl = document.getElementById('monster-name');
+        this.monsterHealthEl = document.getElementById('monster-health');
 
         // State
         this.stages = [];
@@ -88,6 +91,7 @@ class EssayTimer {
         this.updatePomodoroDisplay();
         this.loadTheme();
         this.loadBackgroundImage();
+        this.initMonster();
         this.setupVisibilityHandler();
     }
     
@@ -126,6 +130,16 @@ class EssayTimer {
         if (this.pomodoroCountEl) {
             this.pomodoroCountEl.textContent = this.pomodorosCompleted;
         }
+    }
+
+    initMonster() {
+        currentMonster = { name: 'Slime', hp: 30, maxHp: 30 };
+        this.updateMonsterHUD();
+    }
+
+    updateMonsterHUD() {
+        if (this.monsterNameEl) this.monsterNameEl.textContent = currentMonster.name;
+        if (this.monsterHealthEl) this.monsterHealthEl.textContent = `${currentMonster.hp}/${currentMonster.maxHp}`;
     }
 
     updatePageTitle() {
