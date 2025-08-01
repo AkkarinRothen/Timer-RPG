@@ -148,6 +148,20 @@ textarea {
 #controls { margin-top: 10px; }
 
 /* ==========================
+   MONSTER HUD
+   ========================== */
+#monster-hud {
+  background-color: var(--card-bg-color);
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  max-width: 300px;
+  margin: 10px auto;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* ==========================
    PROGRESS BAR
    ========================== */
 .progress-bar {
@@ -231,7 +245,8 @@ textarea {
    SESSION / POMODORO TAGS
    ========================== */
 #session-tracker,
-#pomodoro-counter {
+#pomodoro-counter,
+#monster-hud {
   background-color: var(--card-bg-color);
   color: var(--text-color);
   padding: 10px 20px;
@@ -446,7 +461,8 @@ textarea {
   .timers-grid { grid-template-columns: 1fr; }
   .timer-display { font-size: 1.5em; }
   #session-tracker,
-  #pomodoro-counter { width: 100%; }
+  #pomodoro-counter,
+  #monster-hud { width: 100%; }
 }
 
 @media (max-width: 480px) {
