@@ -26,12 +26,13 @@ const pomodoro30Template = {
     ]
 };
 
-// Simple monster list for the RPG mode
-const monsterList = [
-    { name: 'Slime', maxHP: 10 },
-    { name: 'Goblin', maxHP: 20 },
+const defaultMonsters = [
+    { name: 'Slime', maxHP: 20 },
+    { name: 'Goblin', maxHP: 30 },
     { name: 'Dragon', maxHP: 50 }
 ];
+
+const DAMAGE_PER_STAGE = 5;
 
 let db;
 
@@ -69,7 +70,7 @@ class EssayTimer {
         this.notificationSound = document.getElementById('notification-sound');
         this.startSound = document.getElementById('start-sound');
         this.monsterNameEl = document.getElementById('monster-name');
-        this.monsterHealthEl = document.getElementById('monster-health');
+        this.monsterHpEl = document.getElementById('monster-hp');
 
         // State
         this.stages = [];
@@ -84,8 +85,8 @@ class EssayTimer {
         this.dailySessionSeconds = 0;
         this.pomodorosCompleted = 0;
 
-        // RPG state
-        this.monsters = monsterList;
+        // RPG monster
+        this.currentMonsterIndex = 0;
         this.currentMonster = null;
 
         this.init();
@@ -93,20 +94,20 @@ class EssayTimer {
 
     init() {
         this.loadTemplates();
-        this.loadTemplate(this.templateSelect.value);
+        this.loadTemplate(this.templateSelect?.value);
         this.attachEventListeners();
         this.populateSavedEssays();
-        this.loadCurrentMonster();
         this.loadAndCheckDailySession();
         this.reset();
         this.updatePomodoroDisplay();
         this.loadTheme();
         this.loadBackgroundImage();
+        this.loadCurrentMonster();
         this.updateMonsterHUD();
         this.setupVisibilityHandler();
     }
 
-    // --- NUEVAS FUNCIONALIDADES DE SESIÓN ---
+    // --- Sesión diaria ---
     loadAndCheckDailySession() {
         const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
         const sessionData = db.get('dailySession');
@@ -144,21 +145,49 @@ class EssayTimer {
         }
     }
 
-    // --- Monster persistence y HUD ---
+    // --- Monster persistence y ciclo ---
     loadCurrentMonster() {
-        const saved = db.get('currentMonster');
-        if (saved) {
-            this.currentMonster = saved;
+        const savedMonster = db.get('currentMonster');
+        const savedIndex = db.get('currentMonsterIndex');
+        if (typeof savedIndex === 'number' && savedIndex >= 0 && savedIndex < defaultMonsters.length) {
+            this.currentMonsterIndex = savedIndex;
         } else {
-            this.resetMonster();
+            this.currentMonsterIndex = 0;
         }
-        this.updateMonsterHUD();
+
+        if (savedMonster && savedMonster.name && typeof savedMonster.hp === 'number' && typeof savedMonster.maxHP === 'number') {
+            this.currentMonster = savedMonster;
+        } else {
+            this.loadMonster(this.currentMonsterIndex);
+        }
     }
 
     saveCurrentMonster() {
         if (this.currentMonster) {
             db.set('currentMonster', this.currentMonster);
+            db.set('currentMonsterIndex', this.currentMonsterIndex);
         }
+    }
+
+    loadMonster(index) {
+        if (index >= defaultMonsters.length) {
+            this.currentMonster = null;
+            this.currentMonsterIndex = index;
+            if (this.monsterNameEl) this.monsterNameEl.textContent = 'Sin monstruo';
+            if (this.monsterHpEl) this.monsterHpEl.textContent = '0/0';
+            db.set('currentMonsterIndex', index);
+            db.remove('currentMonster');
+            return;
+        }
+        this.currentMonsterIndex = index;
+        const base = defaultMonsters[index];
+        this.currentMonster = { name: base.name, hp: base.maxHP, maxHP: base.maxHP };
+        this.saveCurrentMonster();
+    }
+
+    loadNextMonster() {
+        this.loadMonster(this.currentMonsterIndex + 1);
+        this.updateMonsterHUD();
     }
 
     changeMonsterHP(delta) {
@@ -167,24 +196,22 @@ class EssayTimer {
         this.saveCurrentMonster();
         this.updateMonsterHUD();
         if (this.currentMonster.hp <= 0) {
-            this.resetMonster();
+            alert(`¡Has vencido a ${this.currentMonster.name}!`);
+            this.loadNextMonster();
         }
     }
 
-    resetMonster() {
-        const base = this.monsters[Math.floor(Math.random() * this.monsters.length)];
-        this.currentMonster = { name: base.name, hp: base.maxHP, maxHP: base.maxHP };
-        this.saveCurrentMonster();
-        this.updateMonsterHUD();
-    }
-
     updateMonsterHUD() {
-        if (!this.currentMonster) return;
+        if (!this.currentMonster) {
+            if (this.monsterNameEl) this.monsterNameEl.textContent = '';
+            if (this.monsterHpEl) this.monsterHpEl.textContent = '';
+            return;
+        }
         if (this.monsterNameEl) this.monsterNameEl.textContent = this.currentMonster.name;
-        if (this.monsterHealthEl) this.monsterHealthEl.textContent = `${this.currentMonster.hp}/${this.currentMonster.maxHP}`;
+        if (this.monsterHpEl) this.monsterHpEl.textContent = `${this.currentMonster.hp}/${this.currentMonster.maxHP}`;
     }
 
-    // --- FIN NUEVAS FUNCIONALIDADES ---
+    // --- Fin de nuevas funcionalidades ---
 
     updatePageTitle() {
         if (!this.isRunning) {
@@ -206,7 +233,7 @@ class EssayTimer {
     tick() {
         if (this.isPaused) return;
 
-        // Lógica del contador de sesión diaria
+        // Sesión diaria
         this.dailySessionSeconds++;
         this.updateSessionDisplay();
         if (this.dailySessionSeconds % 5 === 0) {
@@ -223,8 +250,10 @@ class EssayTimer {
                     this.pomodorosCompleted++;
                     this.updatePomodoroDisplay();
                 }
-                // Cada etapa completada daña al monstruo
-                this.changeMonsterHP(-1);
+                // Daño al monstruo si no es descanso
+                if (!stage.label.toLowerCase().includes('descanso') && this.currentMonster) {
+                    this.changeMonsterHP(-DAMAGE_PER_STAGE);
+                }
                 this.playNotification();
                 this.currentStageIndex++;
                 this.setCurrentStage();
@@ -241,7 +270,6 @@ class EssayTimer {
     setCurrentStage() {
         const nextStageIndex = this.stages.findIndex(stage => stage.isExtra);
 
-        // Lógica de ciclo completo
         if (this.currentStageIndex === nextStageIndex) {
             if (confirm("¡Has completado un ciclo! ¿Deseas empezar de nuevo?")) {
                 this.startNewCycle();
@@ -291,12 +319,12 @@ class EssayTimer {
     saveTemplate() {
         const templateName = prompt("Guardar plantilla como:", "Mi Plantilla Personalizada");
         if (templateName) {
-            const templates = db.get('templates');
+            let templates = db.get('templates') || {};
             const templateKey = templateName.toLowerCase().replace(/\s+/g, '-');
             templates[templateKey] = { name: templateName, stages: this.stages };
             db.set('templates', templates);
             this.loadTemplates();
-            this.templateSelect.value = templateKey;
+            if (this.templateSelect) this.templateSelect.value = templateKey;
         }
         this.toggleEditMode(true);
     }
