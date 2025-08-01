@@ -29,7 +29,9 @@ const pomodoro30Template = {
 const defaultMonsters = [
     { name: 'Slime', maxHP: 20 },
     { name: 'Goblin', maxHP: 30 },
-    { name: 'Dragon', maxHP: 50 }
+    { name: 'Orc', maxHP: 40 },
+    { name: 'Troll', maxHP: 60 },
+    { name: 'Dragon', maxHP: 80 }
 ];
 
 const DAMAGE_PER_STAGE = 5;
@@ -71,6 +73,7 @@ class EssayTimer {
         this.startSound = document.getElementById('start-sound');
         this.monsterNameEl = document.getElementById('monster-name');
         this.monsterHpEl = document.getElementById('monster-hp');
+        this.monsterHealthBarEl = document.getElementById('monster-health-bar');
 
         // State
         this.stages = [];
@@ -174,6 +177,7 @@ class EssayTimer {
         const base = defaultMonsters[index];
         this.currentMonster = { name: base.name, hp: base.maxHP, maxHP: base.maxHP };
         this.saveCurrentMonster();
+        this.updateMonsterHUD();
     }
 
     loadNextMonster() {
@@ -196,10 +200,15 @@ class EssayTimer {
         if (!this.currentMonster) {
             if (this.monsterNameEl) this.monsterNameEl.textContent = '';
             if (this.monsterHpEl) this.monsterHpEl.textContent = '';
+            if (this.monsterHealthBarEl) this.monsterHealthBarEl.style.width = '0%';
             return;
         }
         if (this.monsterNameEl) this.monsterNameEl.textContent = this.currentMonster.name;
         if (this.monsterHpEl) this.monsterHpEl.textContent = `${this.currentMonster.hp}/${this.currentMonster.maxHP}`;
+        if (this.monsterHealthBarEl) {
+            const percent = (this.currentMonster.hp / this.currentMonster.maxHP) * 100;
+            this.monsterHealthBarEl.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+        }
     }
 
     // General timer logic
