@@ -27,11 +27,31 @@ const pomodoro30Template = {
 };
 
 const defaultMonsters = [
-    { name: 'Slime', maxHP: 20 },
-    { name: 'Goblin', maxHP: 30 },
-    { name: 'Orc', maxHP: 40 },
-    { name: 'Troll', maxHP: 60 },
-    { name: 'Dragon', maxHP: 80 }
+    {
+        name: 'Slime',
+        maxHP: 20,
+        img: 'https://raw.githubusercontent.com/hfg-gmuend/openmoji/master/color/svg/1F9EA.svg'
+    },
+    {
+        name: 'Goblin',
+        maxHP: 30,
+        img: 'https://raw.githubusercontent.com/hfg-gmuend/openmoji/master/color/svg/1F47E.svg'
+    },
+    {
+        name: 'Orc',
+        maxHP: 40,
+        img: 'https://raw.githubusercontent.com/hfg-gmuend/openmoji/master/color/svg/1F479.svg'
+    },
+    {
+        name: 'Troll',
+        maxHP: 60,
+        img: 'https://raw.githubusercontent.com/hfg-gmuend/openmoji/master/color/svg/1F47A.svg'
+    },
+    {
+        name: 'Dragon',
+        maxHP: 80,
+        img: 'https://raw.githubusercontent.com/hfg-gmuend/openmoji/master/color/svg/1F409.svg'
+    }
 ];
 
 const DAMAGE_PER_STAGE = 5;
@@ -72,8 +92,9 @@ class EssayTimer {
         this.notificationSound = document.getElementById('notification-sound');
         this.startSound = document.getElementById('start-sound');
         this.monsterNameEl = document.getElementById('monster-name');
-        this.monsterHpEl = document.getElementById('monster-hp');
-        this.monsterHealthBarEl = document.getElementById('monster-health-bar');
+        this.monsterHpEl = document.getElementById('monster-hp'); // fallback textual
+        this.monsterHealthBarEl = document.getElementById('monster-health-bar'); // visual bar
+        this.monsterImgEl = document.getElementById('monster-img'); // optional image
 
         // State
         this.stages = [];
@@ -150,6 +171,9 @@ class EssayTimer {
         }
 
         if (savedMonster && savedMonster.name && typeof savedMonster.hp === 'number' && typeof savedMonster.maxHP === 'number') {
+            if (!savedMonster.img && defaultMonsters[this.currentMonsterIndex]?.img) {
+                savedMonster.img = defaultMonsters[this.currentMonsterIndex].img;
+            }
             this.currentMonster = savedMonster;
         } else {
             this.loadMonster(this.currentMonsterIndex);
@@ -169,15 +193,16 @@ class EssayTimer {
             this.currentMonsterIndex = index;
             if (this.monsterNameEl) this.monsterNameEl.textContent = 'Sin monstruo';
             if (this.monsterHpEl) this.monsterHpEl.textContent = '0/0';
+            if (this.monsterHealthBarEl) this.monsterHealthBarEl.style.width = '0%';
+            if (this.monsterImgEl) this.monsterImgEl.src = '';
             db.set('currentMonsterIndex', index);
             db.remove('currentMonster');
             return;
         }
         this.currentMonsterIndex = index;
         const base = defaultMonsters[index];
-        this.currentMonster = { name: base.name, hp: base.maxHP, maxHP: base.maxHP };
+        this.currentMonster = { name: base.name, hp: base.maxHP, maxHP: base.maxHP, img: base.img };
         this.saveCurrentMonster();
-        this.updateMonsterHUD();
     }
 
     loadNextMonster() {
@@ -201,6 +226,7 @@ class EssayTimer {
             if (this.monsterNameEl) this.monsterNameEl.textContent = '';
             if (this.monsterHpEl) this.monsterHpEl.textContent = '';
             if (this.monsterHealthBarEl) this.monsterHealthBarEl.style.width = '0%';
+            if (this.monsterImgEl) this.monsterImgEl.src = '';
             return;
         }
         if (this.monsterNameEl) this.monsterNameEl.textContent = this.currentMonster.name;
@@ -208,6 +234,9 @@ class EssayTimer {
         if (this.monsterHealthBarEl) {
             const percent = (this.currentMonster.hp / this.currentMonster.maxHP) * 100;
             this.monsterHealthBarEl.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+        }
+        if (this.monsterImgEl && this.currentMonster.img) {
+            this.monsterImgEl.src = this.currentMonster.img;
         }
     }
 

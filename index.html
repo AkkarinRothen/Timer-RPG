@@ -87,10 +87,13 @@
             <strong>Pomodoros completados:</strong> <span id="pomodoro-count">0</span>
           </div>
 
-          <div id="monster-hud" class="my-3">
-            <strong id="monster-name">Monstruo</strong> - HP: <span id="monster-hp">0/0</span>
-            <div id="monster-health">
-              <div id="monster-health-bar"></div>
+          <div id="monster-hud" class="my-3 d-flex align-items-center gap-2">
+            <img id="monster-img" src="https://raw.githubusercontent.com/hfg-gmuend/openmoji/master/color/svg/1F9EA.svg" alt="Imagen de monstruo" style="width:48px; height:48px;" />
+            <div>
+              <div><strong id="monster-name">Monstruo</strong> - HP: <span id="monster-hp">0/0</span></div>
+              <div id="monster-health" style="background: #444; border-radius: 4px; width: 150px; height: 10px; overflow: hidden; margin-top: 4px;">
+                <div id="monster-health-bar" style="background: #28a745; width: 0%; height: 100%; transition: width .3s;"></div>
+              </div>
             </div>
           </div>
 
@@ -147,7 +150,6 @@
             <button id="pause-btn" class="btn btn-warning" disabled>Pausar</button>
             <button id="reset-btn" class="btn btn-danger" disabled>Reiniciar</button>
           </div>
-
 
           <audio id="notification-sound" src="https://www.soundjay.com/buttons/sounds/button-16.mp3" preload="auto"></audio>
           <audio id="start-sound" src="Sounds/Start.mp3" preload="auto"></audio>
