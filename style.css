@@ -492,3 +492,29 @@ textarea {
 #login-box input {
   margin-bottom: 10px;
 }
+
+/* Monster HUD */
+#monster-hud {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+#monster-name {
+  font-weight: bold;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+#monster-health {
+  width: 100%;
+  height: 20px;
+  background: #eee;
+  border: 1px solid #ccc;
+  position: relative;
+}
+
+#monster-health-bar {
+  height: 100%;
+  width: 100%;
+  background: var(--danger-color);
+}

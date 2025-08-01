@@ -61,6 +61,8 @@ class EssayTimer {
         this.essayNotes = document.getElementById('essay-notes');
         this.notificationSound = document.getElementById('notification-sound');
         this.startSound = document.getElementById('start-sound');
+        this.monsterNameEl = document.getElementById('monster-name');
+        this.monsterHealthBar = document.getElementById('monster-health-bar');
 
         // State
         this.stages = [];
@@ -72,6 +74,7 @@ class EssayTimer {
         this.intervalId = null;
         this.timeLeftInStage = 0;
         this.extraTime = 0;
+        this.monster = { name: 'Slime', hp: 100, maxHp: 100 };
         this.dailySessionSeconds = 0; // NUEVO
         this.pomodorosCompleted = 0;
 
@@ -86,6 +89,7 @@ class EssayTimer {
         this.loadAndCheckDailySession(); // NUEVO
         this.reset();
         this.updatePomodoroDisplay();
+        this.updateMonsterHud();
         this.loadTheme();
         this.loadBackgroundImage();
         this.setupVisibilityHandler();
@@ -128,6 +132,21 @@ class EssayTimer {
         }
     }
 
+    updateMonsterHud() {
+        if (this.monsterNameEl) {
+            this.monsterNameEl.textContent = this.monster.name;
+        }
+        if (this.monsterHealthBar) {
+            const percent = Math.max(0, Math.min(100, (this.monster.hp / this.monster.maxHp) * 100));
+            this.monsterHealthBar.style.width = `${percent}%`;
+        }
+    }
+
+    damageMonster(amount) {
+        this.monster.hp = Math.max(0, this.monster.hp - amount);
+        this.updateMonsterHud();
+    }
+
     updatePageTitle() {
         if (!this.isRunning) {
             document.title = 'Advanced Essay Timer';
@@ -145,6 +164,8 @@ class EssayTimer {
     startNewCycle() {
         this.currentStageIndex = 0;
         this.setCurrentStage();
+        this.monster.hp = this.monster.maxHp;
+        this.updateMonsterHud();
         this.updateAllDisplays();
         this.updatePageTitle();
     }
@@ -169,6 +190,7 @@ class EssayTimer {
                     this.updatePomodoroDisplay();
                 }
                 this.playNotification();
+                this.damageMonster(10);
                 this.currentStageIndex++;
                 this.setCurrentStage(); // setCurrentStage ahora contiene la lógica cíclica
             }
@@ -628,7 +650,11 @@ class EssayTimer {
         if (fullReset) {
             this.loadTemplate(this.templateSelect.value);
         }
+        if (fullReset) {
+            this.monster.hp = this.monster.maxHp;
+        }
         this.updateAllDisplays();
+        this.updateMonsterHud();
         this.highlightCurrentStage();
         this.updatePageTitle();
         this.startBtn.textContent = 'Empezar';
