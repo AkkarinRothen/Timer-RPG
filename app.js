@@ -92,9 +92,9 @@ class EssayTimer {
         this.notificationSound = document.getElementById('notification-sound');
         this.startSound = document.getElementById('start-sound');
         this.monsterNameEl = document.getElementById('monster-name');
-        this.monsterHpEl = document.getElementById('monster-hp');
-        this.monsterHealthBarEl = document.getElementById('monster-health-bar');
-        this.monsterImgEl = document.getElementById('monster-img');
+        this.monsterHpEl = document.getElementById('monster-hp'); // fallback textual
+        this.monsterHealthBarEl = document.getElementById('monster-health-bar'); // visual bar
+        this.monsterImgEl = document.getElementById('monster-img'); // optional image
 
         // State
         this.stages = [];
@@ -171,9 +171,8 @@ class EssayTimer {
         }
 
         if (savedMonster && savedMonster.name && typeof savedMonster.hp === 'number' && typeof savedMonster.maxHP === 'number') {
-            if (!savedMonster.img) {
-                const base = defaultMonsters[this.currentMonsterIndex];
-                savedMonster.img = base.img;
+            if (!savedMonster.img && defaultMonsters[this.currentMonsterIndex]?.img) {
+                savedMonster.img = defaultMonsters[this.currentMonsterIndex].img;
             }
             this.currentMonster = savedMonster;
         } else {
@@ -194,6 +193,8 @@ class EssayTimer {
             this.currentMonsterIndex = index;
             if (this.monsterNameEl) this.monsterNameEl.textContent = 'Sin monstruo';
             if (this.monsterHpEl) this.monsterHpEl.textContent = '0/0';
+            if (this.monsterHealthBarEl) this.monsterHealthBarEl.style.width = '0%';
+            if (this.monsterImgEl) this.monsterImgEl.src = '';
             db.set('currentMonsterIndex', index);
             db.remove('currentMonster');
             return;
@@ -202,7 +203,6 @@ class EssayTimer {
         const base = defaultMonsters[index];
         this.currentMonster = { name: base.name, hp: base.maxHP, maxHP: base.maxHP, img: base.img };
         this.saveCurrentMonster();
-        this.updateMonsterHUD();
     }
 
     loadNextMonster() {
@@ -235,7 +235,9 @@ class EssayTimer {
             const percent = (this.currentMonster.hp / this.currentMonster.maxHP) * 100;
             this.monsterHealthBarEl.style.width = `${Math.max(0, Math.min(100, percent))}%`;
         }
-        if (this.monsterImgEl) this.monsterImgEl.src = this.currentMonster.img;
+        if (this.monsterImgEl && this.currentMonster.img) {
+            this.monsterImgEl.src = this.currentMonster.img;
+        }
     }
 
     // General timer logic
