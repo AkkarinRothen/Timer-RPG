@@ -107,11 +107,10 @@ class EssayTimer {
         this.setupVisibilityHandler();
     }
 
-    // --- Sesión diaria ---
+    // Daily session
     loadAndCheckDailySession() {
-        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        const today = new Date().toISOString().slice(0, 10);
         const sessionData = db.get('dailySession');
-
         if (sessionData && sessionData.date === today) {
             this.dailySessionSeconds = sessionData.totalSeconds;
         } else {
@@ -123,29 +122,21 @@ class EssayTimer {
 
     saveDailySession() {
         const today = new Date().toISOString().slice(0, 10);
-        const sessionData = {
-            date: today,
-            totalSeconds: this.dailySessionSeconds
-        };
-        db.set('dailySession', sessionData);
+        db.set('dailySession', { date: today, totalSeconds: this.dailySessionSeconds });
     }
 
     updateSessionDisplay() {
         const hours = Math.floor(this.dailySessionSeconds / 3600).toString().padStart(2, '0');
         const minutes = Math.floor((this.dailySessionSeconds % 3600) / 60).toString().padStart(2, '0');
         const seconds = (this.dailySessionSeconds % 60).toString().padStart(2, '0');
-        if (this.sessionTimeEl) {
-            this.sessionTimeEl.textContent = `${hours}:${minutes}:${seconds}`;
-        }
+        if (this.sessionTimeEl) this.sessionTimeEl.textContent = `${hours}:${minutes}:${seconds}`;
     }
 
     updatePomodoroDisplay() {
-        if (this.pomodoroCountEl) {
-            this.pomodoroCountEl.textContent = this.pomodorosCompleted;
-        }
+        if (this.pomodoroCountEl) this.pomodoroCountEl.textContent = this.pomodorosCompleted;
     }
 
-    // --- Monster persistence y ciclo ---
+    // Monster logic
     loadCurrentMonster() {
         const savedMonster = db.get('currentMonster');
         const savedIndex = db.get('currentMonsterIndex');
@@ -211,8 +202,7 @@ class EssayTimer {
         if (this.monsterHpEl) this.monsterHpEl.textContent = `${this.currentMonster.hp}/${this.currentMonster.maxHP}`;
     }
 
-    // --- Fin de nuevas funcionalidades ---
-
+    // General timer logic
     updatePageTitle() {
         if (!this.isRunning) {
             document.title = 'Advanced Essay Timer';
@@ -233,12 +223,9 @@ class EssayTimer {
     tick() {
         if (this.isPaused) return;
 
-        // Sesión diaria
         this.dailySessionSeconds++;
         this.updateSessionDisplay();
-        if (this.dailySessionSeconds % 5 === 0) {
-            this.saveDailySession();
-        }
+        if (this.dailySessionSeconds % 5 === 0) this.saveDailySession();
 
         const stage = this.stages[this.currentStageIndex];
         if (!stage) return;
@@ -250,7 +237,6 @@ class EssayTimer {
                     this.pomodorosCompleted++;
                     this.updatePomodoroDisplay();
                 }
-                // Daño al monstruo si no es descanso
                 if (!stage.label.toLowerCase().includes('descanso') && this.currentMonster) {
                     this.changeMonsterHP(-DAMAGE_PER_STAGE);
                 }
@@ -268,19 +254,16 @@ class EssayTimer {
     }
 
     setCurrentStage() {
-        const nextStageIndex = this.stages.findIndex(stage => stage.isExtra);
-
+        const nextStageIndex = this.stages.findIndex(s => s.isExtra);
         if (this.currentStageIndex === nextStageIndex) {
             if (confirm("¡Has completado un ciclo! ¿Deseas empezar de nuevo?")) {
                 this.startNewCycle();
                 return;
             }
         }
-
         if (this.currentStageIndex >= this.stages.length) {
             this.currentStageIndex = nextStageIndex;
         }
-
         const stage = this.stages[this.currentStageIndex];
         if (stage && !stage.isExtra) {
             this.timeLeftInStage = stage.duration * 60;
@@ -294,12 +277,8 @@ class EssayTimer {
         this.isEditMode = forceOff ? false : !this.isEditMode;
         document.body.classList.toggle('edit-mode-active', this.isEditMode);
         const mainControls = [this.startBtn, this.pauseBtn, this.resetBtn, this.newEssayBtn, this.essayNameInput, this.savedEssaysSelect, this.deleteEssayBtn, this.templateSelect];
-        mainControls.forEach(control => {
-            if (control) control.disabled = this.isEditMode;
-        });
-        if (this.isEditMode) {
-            this.stagesBackup = JSON.parse(JSON.stringify(this.stages));
-        }
+        mainControls.forEach(c => { if (c) c.disabled = this.isEditMode; });
+        if (this.isEditMode) this.stagesBackup = JSON.parse(JSON.stringify(this.stages));
     }
 
     addStage() {
@@ -366,12 +345,10 @@ class EssayTimer {
                     if (stageToUpdate) {
                         const oldDuration = stageToUpdate.duration;
                         stageToUpdate.duration = newDuration;
-
                         if (this.isRunning && stage.id === this.stages[this.currentStageIndex].id && !stage.isExtra) {
                             this.timeLeftInStage = Math.max(0, this.timeLeftInStage + (newDuration - oldDuration) * 60);
                         }
                     }
-
                     this.updateAllDisplays();
                 });
             }
@@ -437,9 +414,7 @@ class EssayTimer {
 
     loadBackgroundImage() {
         const img = db.get('bgImage');
-        if (img) {
-            document.body.style.backgroundImage = `url(${img})`;
-        }
+        if (img) document.body.style.backgroundImage = `url(${img})`;
     }
 
     handleBackgroundUpload(e) {
@@ -510,14 +485,14 @@ class EssayTimer {
     playNotification() {
         if (this.notificationSound) {
             this.notificationSound.currentTime = 0;
-            this.notificationSound.play().catch(e => console.log("La reproducción automática fue bloqueada."));
+            this.notificationSound.play().catch(() => {});
         }
     }
 
     playStartSound() {
         if (!this.startSound) return;
         this.startSound.currentTime = 0;
-        this.startSound.play().catch(e => console.log('La reproducción automática fue bloqueada.'));
+        this.startSound.play().catch(() => {});
     }
 
     loadTemplates() {
@@ -661,9 +636,7 @@ class EssayTimer {
     calculateAndDisplayTotalTime() {
         const activeStages = this.stages.filter(stage => !stage.isExtra);
         let totalSeconds = activeStages.reduce((acc, stage) => acc + (stage.duration * 60), 0);
-        if (this.totalTimeEl) {
-            this.totalTimeEl.textContent = `Tiempo Total: ${this.formatTime(totalSeconds)}`;
-        }
+        if (this.totalTimeEl) this.totalTimeEl.textContent = `Tiempo Total: ${this.formatTime(totalSeconds)}`;
     }
 
     highlightCurrentStage() {
@@ -697,9 +670,7 @@ class EssayTimer {
     updateDisplay(stage, timeLeft) {
         const elements = this.stageElements[stage.id];
         if (!elements) return;
-        if (elements.display) {
-            elements.display.textContent = this.formatTime(timeLeft);
-        }
+        if (elements.display) elements.display.textContent = this.formatTime(timeLeft);
         if (!stage.isExtra && elements.progress && elements.display) {
             const duration = stage.duration * 60 || 1;
             const progressPercent = Math.max(0, (timeLeft / duration) * 100);
@@ -718,9 +689,7 @@ class EssayTimer {
             alert("Por favor, empieza un nuevo ensayo o selecciona uno guardado.");
             return;
         }
-        if (!this.isRunning) {
-            this.setCurrentStage();
-        }
+        if (!this.isRunning) this.setCurrentStage();
         this.isRunning = true;
         this.isPaused = false;
         clearInterval(this.intervalId);
@@ -755,9 +724,7 @@ class EssayTimer {
             this.pomodorosCompleted = 0;
             this.updatePomodoroDisplay();
         }
-        if (fullReset) {
-            if (this.templateSelect) this.loadTemplate(this.templateSelect.value);
-        }
+        if (fullReset && this.templateSelect) this.loadTemplate(this.templateSelect.value);
         this.updateAllDisplays();
         this.highlightCurrentStage();
         this.updatePageTitle();
