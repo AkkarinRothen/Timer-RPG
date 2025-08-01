@@ -210,6 +210,65 @@ class EssayTimer {
         }
     }
 
+    loadMonster(index) {
+        if (index >= defaultMonsters.length) {
+            this.currentMonster = null;
+            this.currentMonsterIndex = index;
+            if (this.monsterNameEl) this.monsterNameEl.textContent = 'Sin monstruo';
+            if (this.monsterHpEl) this.monsterHpEl.textContent = '0/0';
+            if (this.monsterHealthBarEl) this.monsterHealthBarEl.style.width = '0%';
+            if (this.monsterImgEl) this.monsterImgEl.src = '';
+            db.set('currentMonsterIndex', index);
+            db.remove('currentMonster');
+            return;
+        }
+        this.currentMonsterIndex = index;
+        const base = defaultMonsters[index];
+        this.currentMonster = { name: base.name, hp: base.maxHP, maxHP: base.maxHP, img: base.img };
+        this.saveCurrentMonster();
+        this.updateMonsterHUD();
+    }
+
+    loadNextMonster() {
+        if (this.currentMission) {
+            this.currentRoomIndex++;
+            this.advanceRoom();
+        } else {
+            this.loadMonster(this.currentMonsterIndex + 1);
+            this.updateMonsterHUD();
+        }
+    }
+
+    changeMonsterHP(delta) {
+        if (!this.currentMonster) return;
+        this.currentMonster.hp = Math.max(0, this.currentMonster.hp + delta);
+        this.saveCurrentMonster();
+        this.updateMonsterHUD();
+        if (this.currentMonster.hp <= 0) {
+            alert(`¡Has vencido a ${this.currentMonster.name}!`);
+            this.loadNextMonster();
+        }
+    }
+
+    updateMonsterHUD() {
+        if (!this.currentMonster) {
+            if (this.monsterNameEl) this.monsterNameEl.textContent = '';
+            if (this.monsterHpEl) this.monsterHpEl.textContent = '';
+            if (this.monsterHealthBarEl) this.monsterHealthBarEl.style.width = '0%';
+            if (this.monsterImgEl) this.monsterImgEl.src = '';
+            return;
+        }
+        if (this.monsterNameEl) this.monsterNameEl.textContent = this.currentMonster.name;
+        if (this.monsterHpEl) this.monsterHpEl.textContent = `${this.currentMonster.hp}/${this.currentMonster.maxHP}`;
+        if (this.monsterHealthBarEl) {
+            const percent = (this.currentMonster.hp / this.currentMonster.maxHP) * 100;
+            this.monsterHealthBarEl.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+        }
+        if (this.monsterImgEl && this.currentMonster.img) {
+            this.monsterImgEl.src = this.currentMonster.img;
+        }
+    }
+
     // Missions
     loadMissions() {
         let missions = db.get('missions') || {};
@@ -299,65 +358,6 @@ class EssayTimer {
             alert('La sala está vacía.');
             this.currentRoomIndex++;
             this.advanceRoom();
-        }
-    }
-
-    loadMonster(index) {
-        if (index >= defaultMonsters.length) {
-            this.currentMonster = null;
-            this.currentMonsterIndex = index;
-            if (this.monsterNameEl) this.monsterNameEl.textContent = 'Sin monstruo';
-            if (this.monsterHpEl) this.monsterHpEl.textContent = '0/0';
-            if (this.monsterHealthBarEl) this.monsterHealthBarEl.style.width = '0%';
-            if (this.monsterImgEl) this.monsterImgEl.src = '';
-            db.set('currentMonsterIndex', index);
-            db.remove('currentMonster');
-            return;
-        }
-        this.currentMonsterIndex = index;
-        const base = defaultMonsters[index];
-        this.currentMonster = { name: base.name, hp: base.maxHP, maxHP: base.maxHP, img: base.img };
-        this.saveCurrentMonster();
-        this.updateMonsterHUD();
-    }
-
-    loadNextMonster() {
-        if (this.currentMission) {
-            this.currentRoomIndex++;
-            this.advanceRoom();
-        } else {
-            this.loadMonster(this.currentMonsterIndex + 1);
-            this.updateMonsterHUD();
-        }
-    }
-
-    changeMonsterHP(delta) {
-        if (!this.currentMonster) return;
-        this.currentMonster.hp = Math.max(0, this.currentMonster.hp + delta);
-        this.saveCurrentMonster();
-        this.updateMonsterHUD();
-        if (this.currentMonster.hp <= 0) {
-            alert(`¡Has vencido a ${this.currentMonster.name}!`);
-            this.loadNextMonster();
-        }
-    }
-
-    updateMonsterHUD() {
-        if (!this.currentMonster) {
-            if (this.monsterNameEl) this.monsterNameEl.textContent = '';
-            if (this.monsterHpEl) this.monsterHpEl.textContent = '';
-            if (this.monsterHealthBarEl) this.monsterHealthBarEl.style.width = '0%';
-            if (this.monsterImgEl) this.monsterImgEl.src = '';
-            return;
-        }
-        if (this.monsterNameEl) this.monsterNameEl.textContent = this.currentMonster.name;
-        if (this.monsterHpEl) this.monsterHpEl.textContent = `${this.currentMonster.hp}/${this.currentMonster.maxHP}`;
-        if (this.monsterHealthBarEl) {
-            const percent = (this.currentMonster.hp / this.currentMonster.maxHP) * 100;
-            this.monsterHealthBarEl.style.width = `${Math.max(0, Math.min(100, percent))}%`;
-        }
-        if (this.monsterImgEl && this.currentMonster.img) {
-            this.monsterImgEl.src = this.currentMonster.img;
         }
     }
 
@@ -692,12 +692,6 @@ class EssayTimer {
         }
     }
 
-    formatTime(seconds) {
-        const mins = Math.floor(Math.abs(seconds) / 60).toString().padStart(2, '0');
-        const secs = (Math.abs(seconds) % 60).toString().padStart(2, '0');
-        return `${mins}:${secs}`;
-    }
-
     setupVisibilityHandler() {
         const overlay = document.getElementById('floating-stage');
         if (!overlay) return;
@@ -743,19 +737,6 @@ class EssayTimer {
                 assistantWasHidden = false;
             }
         });
-    }
-
-    playNotification() {
-        if (this.notificationSound) {
-            this.notificationSound.currentTime = 0;
-            this.notificationSound.play().catch(() => {});
-        }
-    }
-
-    playStartSound() {
-        if (!this.startSound) return;
-        this.startSound.currentTime = 0;
-        this.startSound.play().catch(() => {});
     }
 
     populateSavedEssays() {
@@ -903,6 +884,19 @@ class EssayTimer {
         if (this.savedEssaysSelect) this.savedEssaysSelect.value = name;
         if (this.deleteEssayBtn) this.deleteEssayBtn.disabled = false;
         this.start();
+    }
+
+    playNotification() {
+        if (this.notificationSound) {
+            this.notificationSound.currentTime = 0;
+            this.notificationSound.play().catch(() => {});
+        }
+    }
+
+    playStartSound() {
+        if (!this.startSound) return;
+        this.startSound.currentTime = 0;
+        this.startSound.play().catch(() => {});
     }
 }
 

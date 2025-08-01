@@ -69,7 +69,6 @@ function setGridSize() {
     };
     Object.values(dungeonData.rooms).forEach(r => consider(r.coords));
     Object.values(dungeonData.corridors).forEach(c => c.sections.forEach(s => consider(s.coords)));
-    // add some minimum to avoid zero
     const cols = Math.max(1, maxX);
     const rows = Math.max(1, maxY);
     mapContainer.style.display = 'grid';
@@ -79,9 +78,7 @@ function setGridSize() {
 
 function drawMap() {
     if (!mapContainer) return;
-    // Clear previous
-    mapContainer.innerHTML = '';
-
+    mapContainer.innerHTML = ''; // limpiar anterior
     for (const roomId in dungeonData.rooms) {
         createTile(roomId, dungeonData.rooms[roomId], 'room');
     }
@@ -97,8 +94,10 @@ function createTile(id, data, type) {
     const tile = document.createElement('div');
     tile.id = id;
     tile.className = 'map-tile status-unexplored';
-    tile.style.gridColumn = data.coords[0];
-    tile.style.gridRow = data.coords[1];
+    if (Array.isArray(data.coords)) {
+        tile.style.gridColumn = data.coords[0];
+        tile.style.gridRow = data.coords[1];
+    }
     tile.addEventListener('click', () => onTileClick(id, type));
     mapContainer.appendChild(tile);
 }
@@ -204,7 +203,7 @@ function getNeighbors(id) {
     const data = findTileData(id);
     if (!data) return [];
 
-    // If it's a room: connect to corridor entry/exit sections depending on orientation
+    // Si es una sala, conecta a secciones de pasillo según conexiones
     if (dungeonData.rooms[id]) {
         const connections = data.connections || {};
         for (const dir in connections) {
@@ -212,27 +211,21 @@ function getNeighbors(id) {
             const corridor = dungeonData.corridors[corridorId];
             if (!corridor) continue;
             if (corridor.from === id) {
-                // entrance is first section
                 if (corridor.sections[0]) neighbors.add(corridor.sections[0].id);
             } else if (corridor.to === id) {
-                // entrance is last section
                 const last = corridor.sections[corridor.sections.length - 1];
                 if (last) neighbors.add(last.id);
             }
         }
     } else {
-        // It's a corridor section: find its corridor and adjacent
+        // Es una sección de corredor: encontrar adyacentes y posibles salas finales
         for (const cId in dungeonData.corridors) {
             const corridor = dungeonData.corridors[cId];
             const idx = corridor.sections.findIndex(s => s.id === id);
             if (idx !== -1) {
-                // previous section
                 if (idx > 0) neighbors.add(corridor.sections[idx - 1].id);
-                // next section
                 if (idx < corridor.sections.length - 1) neighbors.add(corridor.sections[idx + 1].id);
-                // if first section, can go to corridor.from room
                 if (idx === 0 && corridor.from) neighbors.add(corridor.from);
-                // if last section, can go to corridor.to room
                 if (idx === corridor.sections.length - 1 && corridor.to) neighbors.add(corridor.to);
                 break;
             }
