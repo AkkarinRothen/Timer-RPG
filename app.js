@@ -26,6 +26,13 @@ const pomodoro30Template = {
     ]
 };
 
+// Simple monster list for the RPG mode
+const monsterList = [
+    { name: 'Slime', maxHP: 10 },
+    { name: 'Goblin', maxHP: 20 },
+    { name: 'Dragon', maxHP: 50 }
+];
+
 let db;
 class EssayTimer {
     constructor(containerId) {
@@ -75,6 +82,10 @@ class EssayTimer {
         this.dailySessionSeconds = 0; // NUEVO
         this.pomodorosCompleted = 0;
 
+        // RPG state
+        this.monsters = monsterList;
+        this.currentMonster = null;
+
         this.init();
     }
 
@@ -83,6 +94,7 @@ class EssayTimer {
         this.loadTemplate(this.templateSelect.value);
         this.attachEventListeners();
         this.populateSavedEssays();
+        this.loadCurrentMonster();
         this.loadAndCheckDailySession(); // NUEVO
         this.reset();
         this.updatePomodoroDisplay();
@@ -128,6 +140,37 @@ class EssayTimer {
         }
     }
 
+    // --- Monster persistence helpers ---
+    loadCurrentMonster() {
+        const saved = db.get('currentMonster');
+        if (saved) {
+            this.currentMonster = saved;
+        } else {
+            this.resetMonster();
+        }
+    }
+
+    saveCurrentMonster() {
+        if (this.currentMonster) {
+            db.set('currentMonster', this.currentMonster);
+        }
+    }
+
+    changeMonsterHP(delta) {
+        if (!this.currentMonster) return;
+        this.currentMonster.hp = Math.max(0, this.currentMonster.hp + delta);
+        this.saveCurrentMonster();
+        if (this.currentMonster.hp <= 0) {
+            this.resetMonster();
+        }
+    }
+
+    resetMonster() {
+        const base = this.monsters[Math.floor(Math.random() * this.monsters.length)];
+        this.currentMonster = { name: base.name, hp: base.maxHP, maxHP: base.maxHP };
+        this.saveCurrentMonster();
+    }
+
     updatePageTitle() {
         if (!this.isRunning) {
             document.title = 'Advanced Essay Timer';
@@ -168,6 +211,8 @@ class EssayTimer {
                     this.pomodorosCompleted++;
                     this.updatePomodoroDisplay();
                 }
+                // Each completed stage damages the monster
+                this.changeMonsterHP(-1);
                 this.playNotification();
                 this.currentStageIndex++;
                 this.setCurrentStage(); // setCurrentStage ahora contiene la lógica cíclica
