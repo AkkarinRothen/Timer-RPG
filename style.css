@@ -534,3 +534,12 @@ textarea {
   width: 100%;
   background: var(--danger-color);
 }
+
+/* Floating monster HUD */
+#monster-hud {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 10002;
+  margin: 0;
+}
