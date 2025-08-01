@@ -26,6 +26,12 @@ const pomodoro30Template = {
     ]
 };
 
+const defaultMonsters = [
+    { name: 'Slime', hp: 20 },
+    { name: 'Goblin', hp: 30 },
+    { name: 'Dragon', hp: 50 }
+];
+
 let db;
 class EssayTimer {
     constructor(containerId) {
@@ -61,6 +67,8 @@ class EssayTimer {
         this.essayNotes = document.getElementById('essay-notes');
         this.notificationSound = document.getElementById('notification-sound');
         this.startSound = document.getElementById('start-sound');
+        this.monsterNameEl = document.getElementById('monster-name');
+        this.monsterHpEl = document.getElementById('monster-hp');
 
         // State
         this.stages = [];
@@ -74,6 +82,8 @@ class EssayTimer {
         this.extraTime = 0;
         this.dailySessionSeconds = 0; // NUEVO
         this.pomodorosCompleted = 0;
+        this.currentMonsterIndex = 0;
+        this.currentMonster = JSON.parse(JSON.stringify(defaultMonsters[0]));
 
         this.init();
     }
@@ -89,6 +99,7 @@ class EssayTimer {
         this.loadTheme();
         this.loadBackgroundImage();
         this.setupVisibilityHandler();
+        this.loadMonster(0);
     }
     
     // --- NUEVAS FUNCIONALIDADES ---
@@ -126,6 +137,28 @@ class EssayTimer {
         if (this.pomodoroCountEl) {
             this.pomodoroCountEl.textContent = this.pomodorosCompleted;
         }
+    }
+
+    updateMonsterHUD() {
+        if (!this.monsterNameEl || !this.monsterHpEl || !this.currentMonster) return;
+        this.monsterNameEl.textContent = this.currentMonster.name;
+        this.monsterHpEl.textContent = this.currentMonster.hp;
+    }
+
+    loadMonster(index) {
+        if (index >= defaultMonsters.length) {
+            this.currentMonster = null;
+            if (this.monsterNameEl) this.monsterNameEl.textContent = 'Sin monstruo';
+            if (this.monsterHpEl) this.monsterHpEl.textContent = '0';
+            return;
+        }
+        this.currentMonsterIndex = index;
+        this.currentMonster = JSON.parse(JSON.stringify(defaultMonsters[index]));
+        this.updateMonsterHUD();
+    }
+
+    loadNextMonster() {
+        this.loadMonster(this.currentMonsterIndex + 1);
     }
 
     updatePageTitle() {
@@ -169,6 +202,14 @@ class EssayTimer {
                     this.updatePomodoroDisplay();
                 }
                 this.playNotification();
+                if (!stage.label.includes('Descanso') && this.currentMonster) {
+                    this.currentMonster.hp = Math.max(0, this.currentMonster.hp - 5);
+                    this.updateMonsterHUD();
+                    if (this.currentMonster.hp === 0) {
+                        alert(`¡Has vencido a ${this.currentMonster.name}!`);
+                        this.loadNextMonster();
+                    }
+                }
                 this.currentStageIndex++;
                 this.setCurrentStage(); // setCurrentStage ahora contiene la lógica cíclica
             }
@@ -490,6 +531,7 @@ class EssayTimer {
         } else {
             this.pause();
         }
+        this.loadMonster(0);
     }
     startNewEssay() {
         const name = this.essayNameInput.value.trim();
@@ -624,6 +666,7 @@ class EssayTimer {
             this.essayNotes.value = '';
             this.pomodorosCompleted = 0;
             this.updatePomodoroDisplay();
+            this.loadMonster(0);
         }
         if (fullReset) {
             this.loadTemplate(this.templateSelect.value);

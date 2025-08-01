@@ -148,6 +148,20 @@ textarea {
 #controls { margin-top: 10px; }
 
 /* ==========================
+   MONSTER HUD
+   ========================== */
+#monster-hud {
+  background-color: var(--card-bg-color);
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  max-width: 300px;
+  margin: 10px auto;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* ==========================
    PROGRESS BAR
    ========================== */
 .progress-bar {
